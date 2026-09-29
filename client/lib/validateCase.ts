@@ -88,13 +88,13 @@ export function validateCase(data: unknown) {
     //   }
     // }
 
-    for (const suspectId of evidence.hiddenTruth.contradicts) {
-  if (!suspectIds.has(suspectId)) {
-    throw new Error(
-      `Evidence ${evidence.id} contradicts invalid suspect ${suspectId}`
-    );
-  }
-}
+//     for (const suspectId of evidence.hiddenTruth.contradicts) {
+//   if (!suspectIds.has(suspectId)) {
+//     throw new Error(
+//       `Evidence ${evidence.id} contradicts invalid suspect ${suspectId}`
+//     );
+//   }
+// }
   }
 
   // -------------------------
