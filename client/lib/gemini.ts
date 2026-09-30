@@ -294,6 +294,12 @@ Rules:
 13. Timeline locationId must refer to a valid location ID.
 14. requiredEvidence must contain valid evidence IDs.
 15. The solution must actually be deducible from the evidence and timeline.
+16. The timeline must NEVER explicitly reveal the culprit or describe the culprit committing the crime.
+17. Timeline events must contain only information that could reasonably be discovered by the investigator.
+18. Do not use omniscient narration in the timeline.
+19. Do not write statements such as "the culprit poisoned the victim", "X killed the victim", or "X framed Y".
+20. The actual solution must exist only inside the solution object.
+21. The timeline may contain suspicious actions, movements, alibis, and discoveries, but the investigator must need to reason from them.
 
 Generate an interesting mystery rather than a generic story.
 `,
