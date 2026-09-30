@@ -307,16 +307,6 @@ The timeline must NEVER explicitly reveal the culprit or describe the culprit co
 
 Timeline events must contain only information that could reasonably be discovered by the investigator.
 
-Do not use omniscient narration.
-
-Do not write statements such as:
-- "X killed the victim"
-- "X poisoned the victim"
-- "X framed Y"
-- "the culprit did..."
-
-The actual solution must exist only inside the solution object.
-
 Timeline events may describe suspicious movements, observations,
 statements, discoveries, or actions, but the investigator must
 infer the culprit from the available evidence.
