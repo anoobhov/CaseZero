@@ -18,7 +18,9 @@ export default function GamePage() {
   const [loading, setLoading] = useState(true);
   const [investigating, setInvestigating] = useState<string | null>(null);
   const [error, setError] = useState("");
-
+const [examiningEvidence, setExaminingEvidence] = useState<string | null>(
+  null
+);
   async function loadSession() {
     try {
       setLoading(true);
@@ -60,6 +62,26 @@ export default function GamePage() {
       setInvestigating(null);
     }
   }
+
+
+  async function handleExamineEvidence(evidenceId: string) {
+  try {
+    setExaminingEvidence(evidenceId);
+    setError("");
+
+    await discoverEvidence(sessionId, evidenceId);
+
+    await loadSession();
+  } catch (error) {
+    setError(
+      error instanceof Error
+        ? error.message
+        : "Failed to examine evidence"
+    );
+  } finally {
+    setExaminingEvidence(null);
+  }
+}
 
   if (loading) {
     return (
@@ -204,6 +226,89 @@ export default function GamePage() {
           </div>
 
         </section>
+
+
+
+        {/* Evidence */}
+<section className="mt-12">
+
+  <h2 className="text-2xl font-semibold">
+    Evidence
+  </h2>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-5">
+
+    {caseData.evidence
+      .filter((evidence: any) =>
+        session.discoveredLocations.includes(
+          evidence.locationId
+        )
+      )
+      .map((evidence: any) => {
+
+        const discovered =
+          session.discoveredEvidence.includes(
+            evidence.id
+          );
+
+        const isLoading =
+          examiningEvidence === evidence.id;
+
+        return (
+          <div
+            key={evidence.id}
+            className="bg-slate-900 border border-slate-800 rounded-xl p-5"
+          >
+
+            <div className="flex items-start justify-between gap-3">
+
+              <h3 className="text-lg font-semibold">
+                {evidence.name}
+              </h3>
+
+              {discovered && (
+                <span className="text-xs bg-green-900 text-green-300 px-2 py-1 rounded-full">
+                  Discovered
+                </span>
+              )}
+
+            </div>
+
+            <p className="text-sm text-slate-400 mt-3">
+              {evidence.description}
+            </p>
+
+            <button
+              onClick={() =>
+                handleExamineEvidence(evidence.id)
+              }
+              disabled={discovered || isLoading}
+              className="mt-5 w-full bg-white text-black rounded-lg py-2 font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isLoading
+                ? "Examining..."
+                : discovered
+                ? "Evidence Examined"
+                : "Examine Evidence"}
+            </button>
+
+          </div>
+        );
+      })}
+
+  </div>
+
+  {caseData.evidence.filter((evidence: any) =>
+    session.discoveredLocations.includes(
+      evidence.locationId
+    )
+  ).length === 0 && (
+    <p className="text-slate-500 mt-4">
+      No evidence discovered yet.
+    </p>
+  )}
+
+</section>
 
         {/* Suspects */}
         <section className="mt-12">
