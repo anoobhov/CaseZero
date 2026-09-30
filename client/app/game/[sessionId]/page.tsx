@@ -7,6 +7,7 @@ import {
   getSession,
   investigateLocation,
   discoverEvidence,
+  interrogateSuspect,
 } from "@/lib/api";
 
 export default function GamePage() {
@@ -21,6 +22,15 @@ export default function GamePage() {
 const [examiningEvidence, setExaminingEvidence] = useState<string | null>(
   null
 );
+
+
+const [interrogatingSuspect, setInterrogatingSuspect] =
+  useState<string | null>(null);
+
+const [selectedSuspect, setSelectedSuspect] =
+  useState<any>(null);
+
+
   async function loadSession() {
     try {
       setLoading(true);
@@ -80,6 +90,30 @@ const [examiningEvidence, setExaminingEvidence] = useState<string | null>(
     );
   } finally {
     setExaminingEvidence(null);
+  }
+}
+
+async function handleInterrogateSuspect(suspectId: string) {
+  try {
+    setInterrogatingSuspect(suspectId);
+    setError("");
+
+    const result = await interrogateSuspect(
+      sessionId,
+      suspectId
+    );
+
+    setSelectedSuspect(result.suspect);
+
+    await loadSession();
+  } catch (error) {
+    setError(
+      error instanceof Error
+        ? error.message
+        : "Failed to interrogate suspect"
+    );
+  } finally {
+    setInterrogatingSuspect(null);
   }
 }
 
@@ -311,65 +345,125 @@ const [examiningEvidence, setExaminingEvidence] = useState<string | null>(
 </section>
 
         {/* Suspects */}
-        <section className="mt-12">
+<section className="mt-12">
 
-          <h2 className="text-2xl font-semibold">
-            Suspects
-          </h2>
+  <h2 className="text-2xl font-semibold">
+    Suspects
+  </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-5">
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-5">
 
-            {caseData.suspects.map((suspect: any) => {
+    {caseData.suspects.map((suspect: any) => {
+      const interrogated =
+        session.interrogatedSuspects.includes(
+          suspect.id
+        );
 
-              const interrogated =
-                session.interrogatedSuspects.includes(
-                  suspect.id
-                );
+      const isLoading =
+        interrogatingSuspect === suspect.id;
 
-              return (
-                <div
-                  key={suspect.id}
-                  className="bg-slate-900 border border-slate-800 rounded-xl p-5"
-                >
+      return (
+        <div
+          key={suspect.id}
+          className="bg-slate-900 border border-slate-800 rounded-xl p-5"
+        >
 
-                  <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between gap-3">
 
-                    <h3 className="text-lg font-semibold">
-                      {suspect.name}
-                    </h3>
+            <h3 className="text-lg font-semibold">
+              {suspect.name}
+            </h3>
 
-                    {interrogated && (
-                      <span className="text-xs bg-green-900 text-green-300 px-2 py-1 rounded-full">
-                        Interrogated
-                      </span>
-                    )}
-
-                  </div>
-
-                  <p className="text-sm text-slate-400 mt-2">
-                    {suspect.occupation}
-                  </p>
-
-                  <p className="text-sm text-slate-500 mt-1">
-                    {suspect.relationshipToVictim}
-                  </p>
-
-                  <button
-                    disabled={interrogated}
-                    className="mt-5 w-full border border-slate-700 rounded-lg py-2 disabled:opacity-40"
-                  >
-                    {interrogated
-                      ? "Already Interrogated"
-                      : "Interrogate"}
-                  </button>
-
-                </div>
-              );
-            })}
+            {interrogated && (
+              <span className="text-xs bg-green-900 text-green-300 px-2 py-1 rounded-full">
+                Interrogated
+              </span>
+            )}
 
           </div>
 
-        </section>
+          <p className="text-sm text-slate-400 mt-2">
+            {suspect.occupation}
+          </p>
+
+          <p className="text-sm text-slate-500 mt-1">
+            {suspect.relationshipToVictim}
+          </p>
+
+          <button
+            onClick={() =>
+              handleInterrogateSuspect(suspect.id)
+            }
+            disabled={isLoading}
+            className="mt-5 w-full bg-white text-black rounded-lg py-2 font-medium disabled:opacity-40"
+          >
+            {isLoading
+              ? "Interrogating..."
+              : interrogated
+              ? "Interrogate Again"
+              : "Interrogate"}
+          </button>
+
+        </div>
+      );
+    })}
+
+  </div>
+
+</section>
+
+
+{selectedSuspect && (
+  <section className="mt-10 bg-slate-900 border border-slate-800 rounded-xl p-6">
+
+    <div className="flex items-center justify-between">
+
+      <div>
+        <p className="text-sm text-slate-500 uppercase tracking-wider">
+          Interrogation
+        </p>
+
+        <h2 className="text-2xl font-semibold mt-1">
+          {selectedSuspect.name}
+        </h2>
+      </div>
+
+      <button
+        onClick={() => setSelectedSuspect(null)}
+        className="text-slate-400 hover:text-white"
+      >
+        Close
+      </button>
+
+    </div>
+
+    <div className="mt-6">
+
+      <h3 className="text-lg font-medium">
+        Statements
+      </h3>
+
+      <div className="mt-4 space-y-4">
+
+        {selectedSuspect.statements.map(
+          (statement: string, index: number) => (
+            <div
+              key={index}
+              className="border-l-2 border-slate-600 pl-4"
+            >
+              <p className="text-slate-300">
+                "{statement}"
+              </p>
+            </div>
+          )
+        )}
+
+      </div>
+
+    </div>
+
+  </section>
+)}
 
       </div>
     </main>
