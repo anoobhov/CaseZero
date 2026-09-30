@@ -42,6 +42,16 @@ export async function POST() {
     // 3. Connect to MongoDB
     await connectDB();
 
+    console.log(
+  "MONGOOSE RELATIONSHIP SCHEMA:",
+  Case.schema.path("relationships")?.instance
+);
+
+console.log(
+  "MONGOOSE RELATIONSHIP SCHEMA:",
+  Case.schema.path("relationships")?.schema?.paths
+);
+
     // 4. Save the case
     const savedCase = await Case.create(validatedCase);
 

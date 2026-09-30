@@ -47,6 +47,30 @@ interface IRelationship {
   description: string;
 }
 
+const RelationshipSchema = new Schema<IRelationship>(
+  {
+    from: {
+      type: String,
+      required: true,
+    },
+    to: {
+      type: String,
+      required: true,
+    },
+    type: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+      required: true,
+    },
+  },
+  {
+    _id: false,
+  }
+);
+
 export interface ICase extends Document {
   title: string;
   description: string;
@@ -201,14 +225,19 @@ const CaseSchema = new Schema<ICase>(
       },
     ],
 
-    relationships: [
-      {
-        from: String,
-        to: String,
-        type: String,
-        description: String,
-      },
-    ],
+    // relationships: [
+    //   {
+    //     from: String,
+    //     to: String,
+    //     type: String,
+    //     description: String,
+    //   },
+    // ],
+
+    relationships: {
+  type: [RelationshipSchema],
+  default: [],
+},
 
     solution: {
       culpritId: {
