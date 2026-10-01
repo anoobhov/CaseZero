@@ -68,35 +68,109 @@ const [result, setResult] = useState<any>(null);
     loadSession();
   }, [sessionId]);
 
+  // async function handleInvestigate(locationId: string) {
+  //   try {
+  //     setInvestigating(locationId);
+  //     setError("");
+
+  //     await investigateLocation(sessionId, locationId);
+
+  //     // Refresh session state
+  //     await loadSession();
+
+      
+  //   } catch (error) {
+  //     setError(
+  //       error instanceof Error
+  //         ? error.message
+  //         : "Failed to investigate location"
+  //     );
+  //   } finally {
+  //     setInvestigating(null);
+  //   }
+  // }
+
+
   async function handleInvestigate(locationId: string) {
-    try {
-      setInvestigating(locationId);
-      setError("");
+  try {
+    setInvestigating(locationId);
+    setError("");
 
-      await investigateLocation(sessionId, locationId);
+    const result = await investigateLocation(
+      sessionId,
+      locationId
+    );
 
-      // Refresh session state
-      await loadSession();
-    } catch (error) {
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Failed to investigate location"
-      );
-    } finally {
-      setInvestigating(null);
-    }
+    setData((prev: any) => {
+      if (!prev) return prev;
+
+      return {
+        ...prev,
+        session: {
+          ...prev.session,
+          discoveredLocations: [
+            ...prev.session.discoveredLocations,
+            locationId,
+          ],
+        },
+      };
+    });
+  } catch (error) {
+    setError(
+      error instanceof Error
+        ? error.message
+        : "Failed to investigate location"
+    );
+  } finally {
+    setInvestigating(null);
   }
+}
 
 
-  async function handleExamineEvidence(evidenceId: string) {
+  // async function handleExamineEvidence(evidenceId: string) {
+  // try {
+  //   setExaminingEvidence(evidenceId);
+  //   setError("");
+
+  //   await discoverEvidence(sessionId, evidenceId);
+
+  //   await loadSession();
+  // } catch (error) {
+  //   setError(
+  //     error instanceof Error
+  //       ? error.message
+  //       : "Failed to examine evidence"
+  //   );
+  // } finally {
+  //   setExaminingEvidence(null);
+  // }
+// }
+
+
+async function handleExamineEvidence(evidenceId: string) {
   try {
     setExaminingEvidence(evidenceId);
     setError("");
 
-    await discoverEvidence(sessionId, evidenceId);
+    await discoverEvidence(
+      sessionId,
+      evidenceId
+    );
 
-    await loadSession();
+    setData((prev: any) => {
+      if (!prev) return prev;
+
+      return {
+        ...prev,
+        session: {
+          ...prev.session,
+          discoveredEvidence: [
+            ...prev.session.discoveredEvidence,
+            evidenceId,
+          ],
+        },
+      };
+    });
   } catch (error) {
     setError(
       error instanceof Error
@@ -108,7 +182,32 @@ const [result, setResult] = useState<any>(null);
   }
 }
 
-async function handleInterrogateSuspect(suspectId: string) {
+// async function handleInterrogateSuspect(suspectId: string) {
+//   try {
+//     setInterrogatingSuspect(suspectId);
+//     setError("");
+
+//     const result = await interrogateSuspect(
+//       sessionId,
+//       suspectId
+//     );
+
+//     setSelectedSuspect(result.suspect);
+
+//     await loadSession();
+//   } catch (error) {
+//     setError(
+//       error instanceof Error
+//         ? error.message
+//         : "Failed to interrogate suspect"
+//     );
+//   } finally {
+//     setInterrogatingSuspect(null);
+//   }
+// }
+async function handleInterrogateSuspect(
+  suspectId: string
+) {
   try {
     setInterrogatingSuspect(suspectId);
     setError("");
@@ -120,7 +219,27 @@ async function handleInterrogateSuspect(suspectId: string) {
 
     setSelectedSuspect(result.suspect);
 
-    await loadSession();
+    setData((prev: any) => {
+      if (!prev) return prev;
+
+      const alreadyInterrogated =
+        prev.session.interrogatedSuspects.includes(
+          suspectId
+        );
+
+      return {
+        ...prev,
+        session: {
+          ...prev.session,
+          interrogatedSuspects: alreadyInterrogated
+            ? prev.session.interrogatedSuspects
+            : [
+                ...prev.session.interrogatedSuspects,
+                suspectId,
+              ],
+        },
+      };
+    });
   } catch (error) {
     setError(
       error instanceof Error
@@ -131,7 +250,6 @@ async function handleInterrogateSuspect(suspectId: string) {
     setInterrogatingSuspect(null);
   }
 }
-
 
 async function handleSubmitAccusation() {
   try {
@@ -666,7 +784,7 @@ async function handleSubmitAccusation() {
 )}
 
 
-
+{/* result */}
 {result && (
   <section className="mt-8 bg-slate-900 border border-slate-800 rounded-xl p-6">
 
