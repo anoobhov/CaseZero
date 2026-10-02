@@ -1,30 +1,3 @@
-// import { NextResponse } from "next/server";
-// import { generateCase } from "@/lib/gemini";
-// import { validateCase } from "@/lib/validateCase";
-
-// export async function POST() {
-//   try {
-//     const generatedCase = await generateCase();
-
-//     const validatedCase = validateCase(generatedCase);
-
-//     return NextResponse.json({
-//       success: true,
-//       case: validatedCase,
-//     });
-//   } catch (error) {
-//     console.error("Case generation failed:", error);
-
-//     return NextResponse.json(
-//       {
-//         success: false,
-//         message: "Failed to generate case",
-//       },
-//       { status: 500 }
-//     );
-//   }
-// }
-
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Case from "@/models/Case";

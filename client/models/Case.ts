@@ -225,15 +225,6 @@ const CaseSchema = new Schema<ICase>(
       },
     ],
 
-    // relationships: [
-    //   {
-    //     from: String,
-    //     to: String,
-    //     type: String,
-    //     description: String,
-    //   },
-    // ],
-
     relationships: {
   type: [RelationshipSchema],
   default: [],
@@ -270,9 +261,6 @@ const CaseSchema = new Schema<ICase>(
   }
 );
 
-// const Case: Model<ICase> =
-//   mongoose.models.Case || mongoose.model<ICase>("Case", CaseSchema);
-
 if (mongoose.models.Case) {
   delete mongoose.models.Case;
 }
@@ -281,7 +269,4 @@ const Case: Model<ICase> = mongoose.model<ICase>(
   "Case",
   CaseSchema
 );
-
-// export default Case;
-
 export default Case;
