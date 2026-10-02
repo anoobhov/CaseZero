@@ -1,61 +1,140 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
 import { connectDB } from "@/lib/mongodb";
 import Case from "@/models/Case";
 import { generateCase } from "@/lib/gemini";
 import { validateCase } from "@/lib/validateCase";
 
-export async function POST() {
+const VALID_DIFFICULTIES = [
+  "easy",
+  "medium",
+  "hard",
+  "expert",
+] as const;
+
+type Difficulty = (typeof VALID_DIFFICULTIES)[number];
+
+export async function POST(request: NextRequest) {
   try {
-    // 1. Generate case using Gemini
-    const generatedCase = await generateCase();
+    // -----------------------------------------
+    // 1. Read difficulty
+    // -----------------------------------------
 
-    // 2. Validate structure + references
-    const validatedCase = validateCase(generatedCase);
+    const body = await request.json();
 
-    // 3. Connect to MongoDB
+    const difficulty = body?.difficulty;
+
+    // -----------------------------------------
+    // 2. Validate difficulty
+    // -----------------------------------------
+
+    if (
+      !difficulty ||
+      !VALID_DIFFICULTIES.includes(
+        difficulty as Difficulty
+      )
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Invalid difficulty. Choose easy, medium, hard, or expert.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // -----------------------------------------
+    // 3. Generate case using Gemini
+    // -----------------------------------------
+
+    const generatedCase = await generateCase(
+      difficulty as Difficulty
+    );
+
+    // -----------------------------------------
+    // 4. Validate structure + references
+    // -----------------------------------------
+
+    const validatedCase = validateCase(
+      generatedCase
+    );
+
+    // -----------------------------------------
+    // 5. Make sure Gemini respected difficulty
+    // -----------------------------------------
+
+    if (validatedCase.difficulty !== difficulty) {
+      return NextResponse.json(
+        {
+          success: false,
+          message:
+            "Generated case difficulty does not match the selected difficulty.",
+        },
+        { status: 500 }
+      );
+    }
+
+    // -----------------------------------------
+    // 6. Connect to MongoDB
+    // -----------------------------------------
+
     await connectDB();
 
-//     console.log(
-//   "MONGOOSE RELATIONSHIP SCHEMA:",
-//   Case.schema.path("relationships")?.instance
-// );
+    // -----------------------------------------
+    // 7. Save case
+    // -----------------------------------------
 
-// console.log(
-//   "MONGOOSE RELATIONSHIP SCHEMA:",
-//   Case.schema.path("relationships")?.schema?.paths
-// );
+    const savedCase = await Case.create(
+      validatedCase
+    );
 
-    // 4. Save the case
-    const savedCase = await Case.create(validatedCase);
+    // -----------------------------------------
+    // 8. Remove sensitive information
+    // -----------------------------------------
 
-    // IMPORTANT:
-    // Never send the solution or hiddenTruth to the frontend.
     const safeCase = savedCase.toObject();
 
+    // Never expose the solution
     delete safeCase.solution;
 
+    // Never expose hidden evidence information
     safeCase.evidence = safeCase.evidence.map(
       (evidence: any) => {
-        const { hiddenTruth, ...publicEvidence } = evidence;
+        const {
+          hiddenTruth,
+          ...publicEvidence
+        } = evidence;
+
         return publicEvidence;
       }
     );
 
+    // -----------------------------------------
+    // 9. Return safe case
+    // -----------------------------------------
+
     return NextResponse.json(
       {
         success: true,
-        message: "Case generated and saved successfully",
+        message:
+          "Case generated and saved successfully",
+
         case: safeCase,
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error("Case generation failed:", error);
+    console.error(
+      "Case generation failed:",
+      error
+    );
 
     return NextResponse.json(
       {
         success: false,
-        message: "Failed to generate and save case",
+        message:
+          "Failed to generate and save case",
       },
       { status: 500 }
     );
