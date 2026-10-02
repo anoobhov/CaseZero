@@ -89,40 +89,52 @@ export async function POST(request: NextRequest) {
       validatedCase
     );
 
+    // -----------------------------------------
+    // 8. Remove sensitive information
+    // -----------------------------------------
+
+    const { solution, ...publicCase } =
+      savedCase.toObject();
+
+    // Never expose hidden evidence information
+    publicCase.evidence = publicCase.evidence.map(
+      (evidence: any) => {
+        const {
+          hiddenTruth,
+          ...publicEvidence
+        } = evidence;
+
+        return publicEvidence;
+      }
+    );
 
     // -----------------------------------------
-// 8. Remove sensitive information
-// -----------------------------------------
+    // 9. Return safe case
+    // -----------------------------------------
 
-// -----------------------------------------
-// 8. Remove sensitive information
-// -----------------------------------------
+    return NextResponse.json(
+      {
+        success: true,
+        message:
+          "Case generated and saved successfully",
+        case: publicCase,
+      },
+      { status: 201 }
+    );
 
-const { solution, ...publicCase } = savedCase.toObject();
+  } catch (error) {
+    console.error(
+      "Case generation failed:",
+      error
+    );
 
-// Never expose hidden evidence information
-publicCase.evidence = publicCase.evidence.map(
-  (evidence: any) => {
-    const {
-      hiddenTruth,
-      ...publicEvidence
-    } = evidence;
-
-    return publicEvidence;
-  }
-);
-
-// -----------------------------------------
-// 9. Return safe case
-// -----------------------------------------
-
-return NextResponse.json(
-  {
-    success: true,
-    message: "Case generated and saved successfully",
-    case: publicCase,
-  },
-  { status: 201 }
-);
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          "Failed to generate and save case",
+      },
+      { status: 500 }
+    );
   }
 }
