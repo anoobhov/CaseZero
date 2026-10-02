@@ -89,35 +89,19 @@ export async function POST(request: NextRequest) {
       validatedCase
     );
 
-    // -----------------------------------------
-    // 8. Remove sensitive information
-    // -----------------------------------------
-
-    const safeCase = savedCase.toObject();
-
-    // // Never expose the solution
-    // delete safeCase.solution;
-
-    // // Never expose hidden evidence information
-    // safeCase.evidence = safeCase.evidence.map(
-    //   (evidence: any) => {
-    //     const {
-    //       hiddenTruth,
-    //       ...publicEvidence
-    //     } = evidence;
-
-    //     return publicEvidence;
-    //   }
-    // );
 
     // -----------------------------------------
 // 8. Remove sensitive information
 // -----------------------------------------
 
-const { solution, ...safeCase } = savedCase.toObject();
+// -----------------------------------------
+// 8. Remove sensitive information
+// -----------------------------------------
+
+const { solution, ...publicCase } = savedCase.toObject();
 
 // Never expose hidden evidence information
-safeCase.evidence = safeCase.evidence.map(
+publicCase.evidence = publicCase.evidence.map(
   (evidence: any) => {
     const {
       hiddenTruth,
@@ -128,33 +112,17 @@ safeCase.evidence = safeCase.evidence.map(
   }
 );
 
-    // -----------------------------------------
-    // 9. Return safe case
-    // -----------------------------------------
+// -----------------------------------------
+// 9. Return safe case
+// -----------------------------------------
 
-    return NextResponse.json(
-      {
-        success: true,
-        message:
-          "Case generated and saved successfully",
-
-        case: safeCase,
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error(
-      "Case generation failed:",
-      error
-    );
-
-    return NextResponse.json(
-      {
-        success: false,
-        message:
-          "Failed to generate and save case",
-      },
-      { status: 500 }
-    );
+return NextResponse.json(
+  {
+    success: true,
+    message: "Case generated and saved successfully",
+    case: publicCase,
+  },
+  { status: 201 }
+);
   }
 }
