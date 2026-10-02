@@ -24,9 +24,7 @@ export async function GET(
     }
 
     // Never expose the solution to the player
-    const safeCase = { ...foundCase };
-
-    delete safeCase.solution;
+    const { solution, ...safeCase } = foundCase;
 
     safeCase.evidence = safeCase.evidence.map(
       (evidence: any) => {

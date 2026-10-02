@@ -809,7 +809,7 @@ export default function GamePage() {
                         const location =
                           locationMap.get(
                             evidence.locationId
-                          );
+                          ) as { name: string } | undefined;;
 
                         return (
                           <div

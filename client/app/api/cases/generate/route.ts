@@ -95,20 +95,38 @@ export async function POST(request: NextRequest) {
 
     const safeCase = savedCase.toObject();
 
-    // Never expose the solution
-    delete safeCase.solution;
+    // // Never expose the solution
+    // delete safeCase.solution;
 
-    // Never expose hidden evidence information
-    safeCase.evidence = safeCase.evidence.map(
-      (evidence: any) => {
-        const {
-          hiddenTruth,
-          ...publicEvidence
-        } = evidence;
+    // // Never expose hidden evidence information
+    // safeCase.evidence = safeCase.evidence.map(
+    //   (evidence: any) => {
+    //     const {
+    //       hiddenTruth,
+    //       ...publicEvidence
+    //     } = evidence;
 
-        return publicEvidence;
-      }
-    );
+    //     return publicEvidence;
+    //   }
+    // );
+
+    // -----------------------------------------
+// 8. Remove sensitive information
+// -----------------------------------------
+
+const { solution, ...safeCase } = savedCase.toObject();
+
+// Never expose hidden evidence information
+safeCase.evidence = safeCase.evidence.map(
+  (evidence: any) => {
+    const {
+      hiddenTruth,
+      ...publicEvidence
+    } = evidence;
+
+    return publicEvidence;
+  }
+);
 
     // -----------------------------------------
     // 9. Return safe case
