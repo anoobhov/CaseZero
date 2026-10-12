@@ -1065,3 +1065,214 @@
     font-size: 10px;
   }
 }
+
+/* Shared theme toggle */
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.035);
+  color: #dedee2;
+  font-family: monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: background 0.25s, color 0.25s, border-color 0.25s;
+}
+
+.theme-toggle:hover {
+  border-color: rgba(237, 52, 61, 0.5);
+  background: rgba(237, 52, 61, 0.09);
+  color: #ff6970;
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid #ed343d;
+  outline-offset: 4px;
+}
+
+.theme-toggle:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+/* Landing page: light mode */
+
+html[data-theme="light"] .landing-page {
+  --bg: #f5f5f7;
+  --red: #c92332;
+  background: #f5f5f7;
+  color: #17181d;
+}
+
+html[data-theme="light"] .background-grid {
+  background-image:
+    linear-gradient(rgba(20, 20, 30, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(20, 20, 30, 0.045) 1px, transparent 1px);
+}
+
+html[data-theme="light"] .background-grid::after {
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    rgba(245, 245, 247, 0.3) 60%,
+    #f5f5f7 100%
+  );
+}
+
+html[data-theme="light"] .ambient {
+  opacity: 0.07;
+}
+
+html[data-theme="light"] .nav,
+html[data-theme="light"] .footer {
+  border-color: rgba(20, 20, 30, 0.1);
+  background: rgba(245, 245, 247, 0.86);
+}
+
+html[data-theme="light"] .brand {
+  color: #17181d;
+}
+
+html[data-theme="light"] .nav-status,
+html[data-theme="light"] .case-stamp,
+html[data-theme="light"] .eyebrow,
+html[data-theme="light"] .button-caption,
+html[data-theme="light"] .footer-label {
+  color: #666a75;
+}
+
+html[data-theme="light"] .hero-title,
+html[data-theme="light"] .description-accent {
+  color: #17181d;
+}
+
+html[data-theme="light"] .title-accent {
+  color: #c92332;
+  text-shadow: 0 0 35px rgba(201, 35, 50, 0.1);
+}
+
+html[data-theme="light"] .hero-description,
+html[data-theme="light"] .footer-value {
+  color: #555965;
+}
+
+html[data-theme="light"] .play-button,
+html[data-theme="light"] .guide-play-button {
+  border-color: #c92332;
+  background: #c92332;
+  color: #fff;
+}
+
+html[data-theme="light"] .play-button:hover,
+html[data-theme="light"] .guide-play-button:hover {
+  background: #ab1d2a;
+}
+
+html[data-theme="light"] .case-file {
+  border-color: rgba(20, 20, 30, 0.12);
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 15px 45px rgba(20, 20, 30, 0.08);
+}
+
+html[data-theme="light"] .file-top,
+html[data-theme="light"] .file-footer,
+html[data-theme="light"] .file-number {
+  color: #343640;
+}
+
+html[data-theme="light"] .file-lines span {
+  background: rgba(20, 20, 30, 0.1);
+}
+
+html[data-theme="light"] .how-to-play {
+  border-color: rgba(20, 20, 30, 0.1);
+  background:
+    radial-gradient(
+      ellipse at 50% 0%,
+      rgba(201, 35, 50, 0.055),
+      transparent 55%
+    ),
+    #ededf1;
+}
+
+html[data-theme="light"] .guide-title,
+html[data-theme="light"] .gameplay-card h3,
+html[data-theme="light"] .gameplay-bottom p strong {
+  color: #17181d;
+}
+
+html[data-theme="light"] .guide-description,
+html[data-theme="light"] .gameplay-card p,
+html[data-theme="light"] .gameplay-bottom p {
+  color: #555965;
+}
+
+html[data-theme="light"] .gameplay-card {
+  border-color: rgba(20, 20, 30, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 5px 18px rgba(20, 20, 30, 0.025);
+}
+
+html[data-theme="light"] .gameplay-card:hover {
+  border-color: rgba(201, 35, 50, 0.35);
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(20, 20, 30, 0.07);
+}
+
+html[data-theme="light"] .step-tag,
+html[data-theme="light"] .step-footer,
+html[data-theme="light"] .bottom-signal {
+  color: #626570;
+}
+
+html[data-theme="light"] .step-icon {
+  border-color: rgba(201, 35, 50, 0.2);
+  background: rgba(201, 35, 50, 0.06);
+  color: #c92332;
+}
+
+html[data-theme="light"] .step-footer,
+html[data-theme="light"] .gameplay-bottom {
+  border-color: rgba(20, 20, 30, 0.1);
+}
+
+html[data-theme="light"] .theme-toggle {
+  border-color: rgba(20, 20, 30, 0.15);
+  background: rgba(255, 255, 255, 0.75);
+  color: #343640;
+}
+
+html[data-theme="light"] .theme-toggle:hover {
+  border-color: rgba(201, 35, 50, 0.4);
+  color: #c92332;
+}
+
+@media (max-width: 600px) {
+  .nav {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .nav-status {
+    margin-left: auto;
+  }
+
+  .theme-toggle {
+    min-height: 35px;
+    padding: 0 9px;
+    font-size: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle {
+    transition: none;
+  }
+}

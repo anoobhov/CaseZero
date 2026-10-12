@@ -1,4 +1,4 @@
-
+import ThemeToggle from "@/components/ThemeToggle";
 import Link from "next/link";
 import "./landing.css";
 
@@ -23,19 +23,22 @@ export default function Home() {
         ))}
       </div>
 
-      <nav className="nav">
-        <Link href="/" className="brand">
-          <span className="brand-icon">C</span>
-          <span>
-            CASE<span className="brand-accent">ZERO</span>
-          </span>
-        </Link>
 
-        <div className="nav-status">
-          <span className="status-dot" />
-          INVESTIGATION SYSTEM ONLINE
-        </div>
-      </nav>
+      <nav className="nav">
+  <Link href="/" className="brand">
+    <span className="brand-icon">C</span>
+    <span>
+      CASE<span className="brand-accent">ZERO</span>
+    </span>
+  </Link>
+
+  <div className="nav-status">
+    <span className="status-dot" />
+    INVESTIGATION SYSTEM ONLINE
+  </div>
+
+  <ThemeToggle />
+</nav>
 
       <section className="hero">
         <div className="case-stamp">
