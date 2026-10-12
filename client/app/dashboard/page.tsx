@@ -653,13 +653,22 @@ export default function DashboardPage() {
               {recentCompleted.map((session, index) => (
 
                 <div
-                  key={session.id}
-                  className={`flex items-center justify-between gap-4 p-5 ${
-                    index !== recentCompleted.length - 1
-                      ? "border-b border-white/10"
-                      : ""
-                  }`}
-                >
+  key={session.id}
+  role="button"
+  tabIndex={0}
+  onClick={() => router.push(`/game/${session.id}?mode=review`)}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      router.push(`/game/${session.id}?mode=review`);
+    }
+  }}
+  className={`group flex cursor-pointer items-center justify-between gap-4 p-5 transition hover:bg-white/[0.04] ${
+    index !== recentCompleted.length - 1
+      ? "border-b border-white/10"
+      : ""
+  }`}
+>
 
                   <div className="flex min-w-0 items-center gap-4">
 
