@@ -1,8 +1,24 @@
-"use client";
 
-import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { useSearchParams } from "next/navigation";
+"use client";
+import ThemeToggle from "@/components/ThemeToggle";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
+import {
+  ArrowLeft,
+  BookOpen,
+  Check,
+  CheckCircle2,
+  ChevronRight,
+  Clock3,
+  FileText,
+  Fingerprint,
+  MapPin,
+  Search,
+  ShieldAlert,
+  UserRound,
+  Users,
+  X,
+} from "lucide-react";
 
 import {
   getSession,
@@ -12,13 +28,96 @@ import {
   submitAccusation,
 } from "@/lib/api";
 
+type AnyRecord = Record<string, any>;
+
+type Accusation = {
+  suspectId: string;
+  motive: string;
+  method: string;
+  reasoning: string;
+};
+
+const EMPTY_ACCUSATION: Accusation = {
+  suspectId: "",
+  motive: "",
+  method: "",
+  reasoning: "",
+};
+
+const panel =
+  "rounded-2xl border border-white/[0.09] bg-[#101216] shadow-[0_12px_40px_rgba(0,0,0,0.12)]";
+
+const label =
+  "text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500";
+
+const field =
+  "mt-2 w-full rounded-xl border border-white/10 bg-[#090b0e] px-4 py-3 text-sm text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-emerald-500/40 focus:ring-2 focus:ring-emerald-500/10";
+
+function getErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
+function Stat({
+  label: statLabel,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string | number;
+  detail?: string;
+}) {
+  return (
+    <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
+      <p className={label}>{statLabel}</p>
+      <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-100">
+        {value}
+      </p>
+      {detail && (
+        <p className="mt-1 text-xs text-slate-500">{detail}</p>
+      )}
+    </div>
+  );
+}
+
+function SectionHeading({
+  eyebrow,
+  title,
+  description,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string;
+}) {
+  return (
+    <div>
+      <p className={label}>{eyebrow}</p>
+      <h2 className="mt-2 text-lg font-semibold text-slate-100">
+        {title}
+      </h2>
+      {description && (
+        <p className="mt-1 text-sm leading-6 text-slate-500">
+          {description}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function GamePage() {
   const params = useParams();
-  const sessionId = params.sessionId as string;
   const searchParams = useSearchParams();
-const isReviewMode = searchParams.get("mode") === "review";
-  const [data, setData] = useState<any>(null);
+
+  const sessionId = params.sessionId as string;
+  const isReviewMode = searchParams.get("mode") === "review";
+
+  const [data, setData] = useState<AnyRecord | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [activeTab, setActiveTab] = useState<"investigation" | "timeline">(
+    "investigation"
+  );
+
   const [investigating, setInvestigating] = useState<string | null>(null);
   const [examiningEvidence, setExaminingEvidence] = useState<string | null>(
     null
@@ -27,34 +126,25 @@ const isReviewMode = searchParams.get("mode") === "review";
     string | null
   >(null);
 
-  const [selectedLocation, setSelectedLocation] = useState<any>(null);
-  const [selectedSuspect, setSelectedSuspect] = useState<any>(null);
+  const [selectedLocation, setSelectedLocation] = useState<AnyRecord | null>(
+    null
+  );
+  const [selectedSuspect, setSelectedSuspect] = useState<AnyRecord | null>(
+    null
+  );
 
   const [showAccusation, setShowAccusation] = useState(false);
-
-  const [accusation, setAccusation] = useState({
-    suspectId: "",
-    motive: "",
-    method: "",
-    reasoning: "",
-  });
-
+  const [accusation, setAccusation] =
+    useState<Accusation>(EMPTY_ACCUSATION);
   const [submittingAccusation, setSubmittingAccusation] = useState(false);
+  const [result, setResult] = useState<AnyRecord | null>(null);
 
-  const [result, setResult] = useState<any>(null);
-
-  const [error, setError] = useState("");
-
-  async function loadSession() {
-
+  const loadSession = useCallback(async () => {
     try {
-
       setLoading(true);
-
       setError("");
 
       const response = await getSession(sessionId);
-
       setData(response);
 
       if (response.session?.accusation) {
@@ -69,2451 +159,1068 @@ const isReviewMode = searchParams.get("mode") === "review";
       if (response.session?.result) {
         setResult(response.session.result);
       }
-
-    } catch (error) {
-
-      setError(
-
-        error instanceof Error
-
-          ? error.message
-
-          : "Failed to load investigation"
-
-      );
-
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to load investigation."));
     } finally {
-
       setLoading(false);
-
     }
-
-  }
-
-  useEffect(() => {
-
-    if (sessionId) {
-
-      loadSession();
-
-    }
-
   }, [sessionId]);
 
-  if (loading) {
+  useEffect(() => {
+    if (sessionId) void loadSession();
+  }, [sessionId, loadSession]);
 
-    return (
+  const session = data?.session;
+  const caseData = data?.case;
 
-      <main className="min-h-screen bg-[#08090b] text-slate-200 flex items-center justify-center">
-
-        <div className="text-center">
-
-          <div className="w-8 h-8 border-2 border-white/10 border-t-emerald-400 rounded-full animate-spin mx-auto" />
-
-          <p className="text-xs tracking-widest uppercase text-slate-600 mt-4">
-
-            Loading investigation...
-
-          </p>
-
-        </div>
-
-      </main>
-
-    );
-
-  }
-
-  if (error && !data) {
-
-    return (
-
-      <main className="min-h-screen bg-[#08090b] text-slate-200 flex items-center justify-center p-6">
-
-        <div className="max-w-md w-full border border-red-500/20 bg-red-500/[0.04] rounded-2xl p-6 text-center">
-
-          <p className="text-xs tracking-widest uppercase text-red-400">
-
-            Investigation Error
-
-          </p>
-
-          <p className="text-sm text-slate-400 mt-3">{error}</p>
-
-          <button
-
-            onClick={loadSession}
-
-            className="mt-5 px-4 py-2 rounded-lg border border-white/10 text-xs text-slate-300 hover:bg-white/5 transition"
-
-          >
-
-            Retry
-
-          </button>
-
-        </div>
-
-      </main>
-
-    );
-
-  }
-
-  if (!data) {
-
-    return null;
-
-  }
-
-  const { session, case: caseData } = data;
-
-  /*
-
-   * ---------------------------------------------------------
-
-   * Derived data
-
-   * ---------------------------------------------------------
-
-   */
-
-  const discoveredLocationIds = new Set(
-
-    session.discoveredLocations
-
+  const discoveredLocationIds = useMemo(
+    () => new Set(session?.discoveredLocations ?? []),
+    [session?.discoveredLocations]
   );
 
-  const discoveredEvidenceIds = new Set(
-
-    session.discoveredEvidence
-
+  const discoveredEvidenceIds = useMemo(
+    () => new Set(session?.discoveredEvidence ?? []),
+    [session?.discoveredEvidence]
   );
 
-  const interrogatedSuspectIds = new Set(
-
-    session.interrogatedSuspects
-
+  const interrogatedSuspectIds = useMemo(
+    () => new Set(session?.interrogatedSuspects ?? []),
+    [session?.interrogatedSuspects]
   );
 
-  const locationMap = new Map(
-
-    caseData.locations.map((location: any) => [
-
-      location.id,
-
-      location,
-
-    ])
-
+  const locationMap = useMemo(
+    () =>
+      new Map<string, AnyRecord>(
+        (caseData?.locations ?? []).map((item: AnyRecord) => [
+          item.id,
+          item,
+        ])
+      ),
+    [caseData?.locations]
   );
 
-  const evidenceMap = new Map(
-
-    caseData.evidence.map((evidence: any) => [
-
-      evidence.id,
-
-      evidence,
-
-    ])
-
+  const suspectMap = useMemo(
+    () =>
+      new Map<string, AnyRecord>(
+        (caseData?.suspects ?? []).map((item: AnyRecord) => [
+          item.id,
+          item,
+        ])
+      ),
+    [caseData?.suspects]
   );
 
-  const visibleEvidence = caseData.evidence.filter(
-
-    (evidence: any) =>
-
-      discoveredLocationIds.has(evidence.locationId)
-
+  const visibleEvidence = useMemo(
+    () =>
+      (caseData?.evidence ?? []).filter((item: AnyRecord) =>
+        discoveredLocationIds.has(item.locationId)
+      ),
+    [caseData?.evidence, discoveredLocationIds]
   );
 
-  const locationEvidence = selectedLocation
+  const locationEvidence = useMemo(
+    () =>
+      selectedLocation
+        ? (caseData?.evidence ?? []).filter(
+            (item: AnyRecord) =>
+              item.locationId === selectedLocation.id
+          )
+        : [],
+    [caseData?.evidence, selectedLocation]
+  );
 
-    ? caseData.evidence.filter(
+  const discoveredLocationCount = discoveredLocationIds.size;
+  const discoveredEvidenceCount = discoveredEvidenceIds.size;
+  const interrogatedSuspectCount = interrogatedSuspectIds.size;
 
-        (evidence: any) =>
+  const locations = caseData?.locations ?? [];
+  const evidence = caseData?.evidence ?? [];
+  const suspects = caseData?.suspects ?? [];
+  const timelineEvents = caseData?.timeline ?? [];
 
-          evidence.locationId === selectedLocation.id
-
-      )
-
-    : [];
-
-  const discoveredEvidenceCount =
-
-    session.discoveredEvidence.length;
-
-  const discoveredLocationCount =
-
-    session.discoveredLocations.length;
-
-  const interrogatedSuspectCount =
-
-    session.interrogatedSuspects.length;
-
-  const totalInvestigationItems =
-
-    caseData.locations.length +
-
-    caseData.evidence.length +
-
-    caseData.suspects.length;
-
-  const completedInvestigationItems =
-
+  const totalItems = locations.length + evidence.length + suspects.length;
+  const completedItems =
     discoveredLocationCount +
-
     discoveredEvidenceCount +
-
     interrogatedSuspectCount;
 
   const progress =
-
-    totalInvestigationItems === 0
-
+    totalItems === 0
       ? 0
+      : Math.min(100, Math.round((completedItems / totalItems) * 100));
 
-      : Math.round(
+  const isCompleted = session?.status === "completed";
+  const isReadOnly = isReviewMode || isCompleted;
 
-          (completedInvestigationItems /
+  const victim = caseData?.victim ?? {};
+  const crime = caseData?.crime ?? {};
 
-            totalInvestigationItems) *
+  const victimName = victim.name || "Identity not recorded";
+  const crimeLocation =
+    crime.location ||
+    "Location not specified in the case file";
 
-            100
+  const crimeDate = crime.date || "Date not recorded";
+  const crimeTime = crime.time || "Time not recorded";
 
-        );
-
-  /*
-
-   * ---------------------------------------------------------
-
-   * Location investigation
-
-   * ---------------------------------------------------------
-
-   */
+  const initialFindings =
+    crime.description ||
+    caseData?.description ||
+    "No initial findings have been recorded in the case file.";
 
   async function handleInvestigate(locationId: string) {
-
-    if (isReviewMode || session.status === "completed") return;
+    if (isReadOnly || !session) return;
 
     const location = locationMap.get(locationId);
-
     if (!location) return;
 
-    const alreadyInvestigated =
-
-      discoveredLocationIds.has(locationId);
-
-    // Already investigated -> simply reopen modal.
-
-    if (alreadyInvestigated) {
-
+    if (discoveredLocationIds.has(locationId)) {
       setSelectedLocation(location);
-
       return;
-
     }
 
     try {
-
       setInvestigating(locationId);
-
       setError("");
 
-      await investigateLocation(
+      await investigateLocation(sessionId, locationId);
 
-        sessionId,
-
-        locationId
-
-      );
-
-      setData((prev: any) => {
-
+      setData((prev: AnyRecord | null) => {
         if (!prev) return prev;
 
-        if (
-
-          prev.session.discoveredLocations.includes(
-
-            locationId
-
-          )
-
-        ) {
-
-          return prev;
-
-        }
+        const current = prev.session.discoveredLocations ?? [];
+        if (current.includes(locationId)) return prev;
 
         return {
-
           ...prev,
-
           session: {
-
             ...prev.session,
-
-            discoveredLocations: [
-
-              ...prev.session.discoveredLocations,
-
-              locationId,
-
-            ],
-
+            discoveredLocations: [...current, locationId],
           },
-
         };
-
       });
 
       setSelectedLocation(location);
-
-    } catch (error) {
-
-      setError(
-
-        error instanceof Error
-
-          ? error.message
-
-          : "Failed to investigate location"
-
-      );
-
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to investigate location."));
     } finally {
-
       setInvestigating(null);
-
     }
-
   }
 
-  /*
-
-   * ---------------------------------------------------------
-
-   * Evidence
-
-   * ---------------------------------------------------------
-
-   */
-
-  async function handleExamineEvidence(
-
-    evidenceId: string
-
-  ) {
-
-    if (isReviewMode || session.status === "completed") return;
+  async function handleExamineEvidence(evidenceId: string) {
+    if (isReadOnly || !session) return;
+    if (discoveredEvidenceIds.has(evidenceId)) return;
 
     try {
-
       setExaminingEvidence(evidenceId);
-
       setError("");
 
-      await discoverEvidence(
+      await discoverEvidence(sessionId, evidenceId);
 
-        sessionId,
-
-        evidenceId
-
-      );
-
-      setData((prev: any) => {
-
+      setData((prev: AnyRecord | null) => {
         if (!prev) return prev;
 
-        const alreadyDiscovered =
-
-          prev.session.discoveredEvidence.includes(
-
-            evidenceId
-
-          );
-
-        if (alreadyDiscovered) {
-
-          return prev;
-
-        }
+        const current = prev.session.discoveredEvidence ?? [];
+        if (current.includes(evidenceId)) return prev;
 
         return {
-
           ...prev,
-
           session: {
-
             ...prev.session,
-
-            discoveredEvidence: [
-
-              ...prev.session.discoveredEvidence,
-
-              evidenceId,
-
-            ],
-
+            discoveredEvidence: [...current, evidenceId],
           },
-
         };
-
       });
-
-    } catch (error) {
-
-      setError(
-
-        error instanceof Error
-
-          ? error.message
-
-          : "Failed to examine evidence"
-
-      );
-
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to examine evidence."));
     } finally {
-
       setExaminingEvidence(null);
-
     }
-
   }
 
-  /*
-
-   * ---------------------------------------------------------
-
-   * Suspect interrogation
-
-   * ---------------------------------------------------------
-
-   */
-
-  async function handleInterrogateSuspect(
-
-    suspectId: string
-
-  ) {
-
-    if (isReviewMode || session.status === "completed") return;
+  async function handleInterrogateSuspect(suspectId: string) {
+    if (isReadOnly || !session) return;
 
     try {
-
       setInterrogatingSuspect(suspectId);
-
       setError("");
 
-      const response =
-
-        await interrogateSuspect(
-
-          sessionId,
-
-          suspectId
-
-        );
-
+      const response = await interrogateSuspect(sessionId, suspectId);
       setSelectedSuspect(response.suspect);
 
-      setData((prev: any) => {
-
+      setData((prev: AnyRecord | null) => {
         if (!prev) return prev;
 
-        const alreadyInterrogated =
-
-          prev.session.interrogatedSuspects.includes(
-
-            suspectId
-
-          );
-
-        if (alreadyInterrogated) {
-
-          return prev;
-
-        }
+        const current = prev.session.interrogatedSuspects ?? [];
+        if (current.includes(suspectId)) return prev;
 
         return {
-
           ...prev,
-
           session: {
-
             ...prev.session,
-
-            interrogatedSuspects: [
-
-              ...prev.session.interrogatedSuspects,
-
-              suspectId,
-
-            ],
-
+            interrogatedSuspects: [...current, suspectId],
           },
-
         };
-
       });
-
-    } catch (error) {
-
-      setError(
-
-        error instanceof Error
-
-          ? error.message
-
-          : "Failed to interrogate suspect"
-
-      );
-
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to interrogate suspect."));
     } finally {
-
       setInterrogatingSuspect(null);
-
     }
-
   }
 
-  /*
-
-   * ---------------------------------------------------------
-
-   * Accusation
-
-   * ---------------------------------------------------------
-
-   */
-
   async function handleSubmitAccusation() {
-
-    if (isReviewMode || session.status === "completed") return;
+    if (isReadOnly) return;
 
     if (!accusation.suspectId) {
-
       setError("Please select a suspect.");
-
       return;
-
     }
-
     if (!accusation.motive.trim()) {
-
       setError("Please enter a motive.");
-
       return;
-
     }
-
     if (!accusation.method.trim()) {
-
       setError("Please enter the method.");
-
       return;
-
     }
-
     if (!accusation.reasoning.trim()) {
-
       setError("Please provide your reasoning.");
-
       return;
-
     }
 
     try {
-
       setSubmittingAccusation(true);
-
       setError("");
 
-      const response =
-
-        await submitAccusation(
-
-          sessionId,
-
-          accusation
-
-        );
-
+      const response = await submitAccusation(sessionId, accusation);
       setResult(response.result);
 
-      /*
-
-       * Update local state instead of calling loadSession().
-
-       * This avoids a full page reload/loading state.
-
-       */
-
-      setData((prev: any) => {
-
+      setData((prev: AnyRecord | null) => {
         if (!prev) return prev;
 
         return {
-
           ...prev,
-
           session: {
-
             ...prev.session,
-
             status: "completed",
-
             accusation: {
-
               ...accusation,
-
               submittedAt: new Date(),
-
             },
-
             result: response.result,
-
           },
-
         };
-
       });
 
       setShowAccusation(false);
-
-    } catch (error) {
-
-      setError(
-
-        error instanceof Error
-
-          ? error.message
-
-          : "Failed to submit accusation"
-
-      );
-
+    } catch (err) {
+      setError(getErrorMessage(err, "Failed to submit accusation."));
     } finally {
-
       setSubmittingAccusation(false);
-
     }
-
   }
 
-  /*
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#090a0d] text-slate-200">
+        <div className="text-center">
+          <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-white/10 border-t-emerald-400" />
+          <p className="mt-5 text-[10px] uppercase tracking-[0.25em] text-slate-500">
+            Opening case file
+          </p>
+        </div>
+      </main>
+    );
+  }
 
-   * ---------------------------------------------------------
+  if (error && !data) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#090a0d] p-6 text-slate-200">
+        <div className="w-full max-w-md rounded-2xl border border-red-500/20 bg-[#101216] p-7 text-center">
+          <ShieldAlert className="mx-auto text-red-400" size={30} />
+          <h1 className="mt-4 text-lg font-semibold">Unable to open case</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-500">{error}</p>
+          <button
+            onClick={() => void loadSession()}
+            className="mt-6 rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 transition hover:bg-white/5"
+          >
+            Retry
+          </button>
+        </div>
+      </main>
+    );
+  }
 
-   * Render
+  if (!data || !session || !caseData) return null;
 
-   * ---------------------------------------------------------
-
-   */
+  const evaluatedResult = session.result ?? result;
+  const finalScore = Number(evaluatedResult?.score ?? 0);
 
   return (
-
-    <main className="min-h-screen bg-[#08090b] text-slate-200">
-
-      {/* =====================================================
-
-          HEADER
-
-      ===================================================== */}
-
-      <header className="border-b border-white/10 bg-[#0a0b0e]">
-
-        <div className="max-w-[1600px] mx-auto px-6 py-6">
-
-          <div className="flex items-start justify-between gap-8">
-
+    <main className="casezero-game min-h-screen bg-[#090a0d] text-slate-200 selection:bg-emerald-500/25">
+      {/* Header */}
+      <header className="border-b border-white/[0.08] bg-[#0c0e12]">
+        <div className="mx-auto max-w-[1700px] px-4 py-5 sm:px-6 lg:px-8">
+          <div className="flex flex-col justify-between gap-5 xl:flex-row xl:items-center">
             <div className="min-w-0">
-
-              <div className="flex items-center gap-3">
-
-                <p className="text-[10px] tracking-[0.25em] uppercase text-emerald-500">
-
-                  CaseZero
-
-                </p>
-
+              <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.2em]">
+                <span className="font-bold text-emerald-400">CaseZero</span>
                 <span className="text-slate-700">/</span>
-
-                <p className="text-[10px] tracking-[0.2em] uppercase text-slate-600">
-
-                  Investigation
-
-                </p>
-
-              </div>
-
-              <div className="flex items-center gap-3 mt-3">
-
-                <h1 className="text-2xl font-semibold text-slate-100 truncate">
-
-                  {caseData.title}
-
-                </h1>
-
-                <span
-
-                  className={`shrink-0 text-[9px] uppercase tracking-[0.15em] px-2.5 py-1 rounded border ${
-
-                    session.status === "completed"
-
-                      ? "text-slate-500 border-white/10 bg-white/[0.02]"
-
-                      : "text-emerald-400 border-emerald-500/20 bg-emerald-500/[0.05]"
-
-                  }`}
-
-                >
-
-                  {session.status === "completed"
-
-                    ? "Completed"
-
-                    : "Active"}
-
+                <span className="text-slate-500">
+                  {isReviewMode ? "Case archive" : "Investigation room"}
                 </span>
-
+                <span
+                  className={`ml-1 rounded-full border px-2.5 py-1 ${
+                    isCompleted
+                      ? "border-slate-600/30 bg-white/[0.03] text-slate-400"
+                      : "border-emerald-500/20 bg-emerald-500/[0.07] text-emerald-400"
+                  }`}
+                >
+                  {isCompleted ? "Closed case" : "Active investigation"}
+                </span>
               </div>
 
-              <p className="text-sm text-slate-500 mt-3 max-w-3xl leading-6">
-
+              <h1 className="mt-3 truncate text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+                {caseData.title}
+              </h1>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
                 {caseData.description}
-
               </p>
-
             </div>
+              
+<div className="flex flex-col gap-4 xl:flex-row xl:items-center">
+  <div className="grid grid-cols-3 gap-2 sm:gap-3 xl:min-w-[390px]">
+    <Stat label="Locations" value={locations.length} />
+    <Stat label="Suspects" value={suspects.length} />
+    <Stat label="Evidence" value={evidence.length} />
+  </div>
 
-            {/* Header stats */}
-
-            <div className="hidden lg:grid grid-cols-4 gap-8 shrink-0">
-
-              <div>
-
-                <p className="text-[9px] tracking-[0.18em] uppercase text-slate-600">
-
-                  Locations
-
-                </p>
-
-                <p className="text-xl font-semibold mt-1">
-
-                  {caseData.locations.length}
-
-                </p>
-
-              </div>
-
-              <div>
-
-                <p className="text-[9px] tracking-[0.18em] uppercase text-slate-600">
-
-                  Suspects
-
-                </p>
-
-                <p className="text-xl font-semibold mt-1">
-
-                  {caseData.suspects.length}
-
-                </p>
-
-              </div>
-
-              <div>
-
-                <p className="text-[9px] tracking-[0.18em] uppercase text-slate-600">
-
-                  Evidence
-
-                </p>
-
-                <p className="text-xl font-semibold mt-1">
-
-                  {caseData.evidence.length}
-
-                </p>
-
-              </div>
-
-              <div>
-
-                <p className="text-[9px] tracking-[0.18em] uppercase text-slate-600">
-
-                  Interrogated
-
-                </p>
-
-                <p className="text-xl font-semibold mt-1">
-
-                  {interrogatedSuspectCount}
-
-                </p>
-
-              </div>
-
-            </div>
+  <div className="flex justify-end xl:ml-auto">
+    <ThemeToggle />
+  </div>
+</div>
 
           </div>
-
         </div>
-
       </header>
 
-      {/* =====================================================
-
-          ERROR
-
-      ===================================================== */}
-
-      {error && (
-
-        <div className="max-w-[1600px] mx-auto px-6 pt-5">
-
-          <div className="rounded-xl border border-red-500/20 bg-red-500/[0.04] px-4 py-3 flex items-center justify-between">
-
-            <p className="text-xs text-red-400">
-
-              {error}
-
-            </p>
-
+      <div className="mx-auto max-w-[1700px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+        {error && (
+          <div className="mb-5 flex items-start justify-between gap-4 rounded-xl border border-red-500/20 bg-red-500/[0.06] px-4 py-3">
+            <p className="text-sm text-red-300">{error}</p>
             <button
-
               onClick={() => setError("")}
-
-              className="text-xs text-slate-600 hover:text-slate-300"
-
+              className="text-red-300/70 hover:text-red-200"
+              aria-label="Dismiss error"
             >
-
-              ×
-
+              <X size={16} />
             </button>
-
           </div>
+        )}
 
+        {/* Case briefing */}
+        
+<section className={`${panel} mb-5 overflow-hidden`}>
+  <div className="grid lg:grid-cols-[0.8fr_1.8fr]">
+    {/* Victim */}
+    <div className="border-b border-white/[0.07] bg-gradient-to-br from-red-950/20 to-transparent p-4 sm:p-5 lg:border-b-0 lg:border-r">
+      <div className="flex items-center gap-2">
+        <div className="rounded-lg border border-red-400/20 bg-red-400/[0.08] p-2 text-red-300">
+          <Fingerprint size={15} />
         </div>
+        <p className={label}>Case briefing</p>
+      </div>
 
+      <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-red-300/80">
+        Deceased
+      </p>
+
+      <h2 className="mt-1 text-xl font-semibold text-white">
+        {victimName}
+      </h2>
+
+      {victim.description && (
+        <p className="mt-1 text-xs leading-5 text-slate-400">
+          {victim.description}
+        </p>
       )}
 
-      {/* =====================================================
-
-          MAIN DASHBOARD
-
-      ===================================================== */}
-
-      <div className="max-w-[1600px] mx-auto px-6 py-6">
-
-        <div className="grid grid-cols-12 gap-5 items-start">
-
-          {/* =================================================
-
-              LEFT SIDEBAR
-
-          ================================================= */}
-
-          <aside className="col-span-12 lg:col-span-3 xl:col-span-2 space-y-5">
-
-            {/* Locations */}
-
-            <div className="rounded-xl border border-white/10 bg-[#0b0d10] overflow-hidden">
-
-              <div className="px-4 py-4 border-b border-white/10">
-
-                <div className="flex items-center justify-between">
-
-                  <p className="text-[10px] tracking-[0.2em] uppercase text-slate-600">
-
-                    Locations
-
-                  </p>
-
-                  <span className="text-[10px] text-slate-700">
-
-                    {discoveredLocationCount}/
-
-                    {caseData.locations.length}
-
-                  </span>
-
-                </div>
-
-              </div>
-
-              <div className="p-2">
-
-                {caseData.locations.map(
-
-                  (location: any) => {
-
-                    const investigated =
-
-                      discoveredLocationIds.has(
-
-                        location.id
-
-                      );
-
-                    const isInvestigating =
-
-                      investigating === location.id;
-
-                    return (
-
-                      <button
-
-                        key={location.id}
-
-                        onClick={() =>
-
-                          handleInvestigate(
-
-                            location.id
-
-                          )
-
-                        }
-
-                        disabled={isInvestigating}
-
-                        className={`
-
-                          group w-full text-left rounded-lg px-3 py-3
-
-                          transition-all duration-200
-
-                          border
-
-                          ${
-
-                            investigated
-
-                              ? "bg-emerald-500/[0.06] border-emerald-500/10 text-emerald-300"
-
-                              : "border-transparent text-slate-400 hover:bg-white/[0.03] hover:border-white/5 hover:text-slate-200"
-
-                          }
-
-                        `}
-
-                      >
-
-                        <div className="flex items-center gap-3">
-
-                          <span
-
-                            className={`
-
-                              w-2 h-2 rounded-full shrink-0 transition-all
-
-                              ${
-
-                                investigated
-
-                                  ? "bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"
-
-                                  : "bg-slate-700 group-hover:bg-slate-500"
-
-                              }
-
-                            `}
-
-                          />
-
-                          <div className="min-w-0">
-
-                            <p className="text-xs font-medium truncate">
-
-                              {location.name}
-
-                            </p>
-
-                            <p className="text-[10px] text-slate-600 mt-0.5">
-
-                              {isInvestigating
-
-                                ? "Investigating..."
-
-                                : investigated
-
-                                ? "Investigated"
-
-                                : "Unexplored"}
-
-                            </p>
-
-                          </div>
-
-                        </div>
-
-                      </button>
-
-                    );
-
-                  }
-
-                )}
-
-              </div>
-
+      <div className="mt-3 flex flex-wrap gap-2">
+        {victim.age != null && (
+          <span className="rounded-md border border-white/[0.08] bg-white/[0.025] px-2 py-1 text-[10px] text-slate-400">
+            Age {victim.age}
+          </span>
+        )}
+
+        {victim.occupation && (
+          <span className="rounded-md border border-white/[0.08] bg-white/[0.025] px-2 py-1 text-[10px] text-slate-400">
+            {victim.occupation}
+          </span>
+        )}
+
+        {crime.type && (
+          <span className="rounded-md border border-red-500/15 bg-red-500/[0.05] px-2 py-1 text-[10px] text-red-300">
+            {crime.type}
+          </span>
+        )}
+      </div>
+    </div>
+
+    {/* Incident details */}
+    <div className="p-4 sm:p-5">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-black/10 p-3">
+          <MapPin size={15} className="mt-0.5 shrink-0 text-emerald-400" />
+          <div className="min-w-0">
+            <p className={label}>Found at</p>
+            <p className="mt-1 text-xs font-medium leading-5 text-slate-200">
+              {crimeLocation}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-black/10 p-3">
+          <Clock3 size={15} className="mt-0.5 shrink-0 text-emerald-400" />
+          <div className="min-w-0">
+            <p className={label}>Date & time</p>
+            <p className="mt-1 text-xs font-medium text-slate-200">
+              {crimeDate}
+            </p>
+            <p className="mt-0.5 text-[11px] text-slate-500">
+              {crimeTime}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-xl border border-white/[0.07] bg-black/10 p-3">
+        <p className={label}>Initial findings</p>
+        <p className="mt-1.5 whitespace-pre-wrap text-xs leading-6 text-slate-300">
+          {initialFindings}
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+        {/* Overall progress */}
+        <section className={`${panel} mb-6 p-4 sm:p-5`}>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className={label}>Investigation progress</p>
+              <p className="mt-1 text-sm text-slate-400">
+                {completedItems} of {totalItems} investigation actions completed
+              </p>
             </div>
-
-            {/* Suspects */}
-
-            <div className="rounded-xl border border-white/10 bg-[#0b0d10] overflow-hidden">
-
-              <div className="px-4 py-4 border-b border-white/10">
-
-                <div className="flex items-center justify-between">
-
-                  <p className="text-[10px] tracking-[0.2em] uppercase text-slate-600">
-
-                    Suspects
-
-                  </p>
-
-                  <span className="text-[10px] text-slate-700">
-
-                    {interrogatedSuspectCount}/
-
-                    {caseData.suspects.length}
-
-                  </span>
-
-                </div>
-
+            <div className="w-full sm:max-w-xs">
+              <div className="mb-2 flex justify-between text-xs">
+                <span className="text-slate-500">Case coverage</span>
+                <span className="font-semibold text-emerald-400">
+                  {progress}%
+                </span>
               </div>
-
-              <div className="p-2">
-
-                {caseData.suspects.map(
-
-                  (suspect: any) => {
-
-                    const interrogated =
-
-                      interrogatedSuspectIds.has(
-
-                        suspect.id
-
-                      );
-
-                    const isInterrogating =
-
-                      interrogatingSuspect ===
-
-                      suspect.id;
-
-                    return (
-
-                      <button
-
-                        key={suspect.id}
-
-                        onClick={() =>
-
-                          handleInterrogateSuspect(
-
-                            suspect.id
-
-                          )
-
-                        }
-
-                        disabled={isInterrogating}
-
-                        className={`
-
-                          group w-full text-left rounded-lg px-3 py-3
-
-                          transition-all duration-200
-
-                          border
-
-                          ${
-
-                            interrogated
-
-                              ? "bg-amber-500/[0.06] border-amber-500/10 text-amber-300"
-
-                              : "border-transparent text-slate-400 hover:bg-white/[0.03] hover:border-white/5 hover:text-slate-200"
-
-                          }
-
-                        `}
-
-                      >
-
-                        <div className="flex items-center gap-3">
-
-                          <span
-
-                            className={`
-
-                              w-2 h-2 rounded-full shrink-0 transition-all
-
-                              ${
-
-                                interrogated
-
-                                  ? "bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.45)]"
-
-                                  : "bg-slate-700 group-hover:bg-slate-500"
-
-                              }
-
-                            `}
-
-                          />
-
-                          <div className="min-w-0">
-
-                            <p className="text-xs font-medium truncate">
-
-                              {suspect.name}
-
-                            </p>
-
-                            <p className="text-[10px] text-slate-600 mt-0.5">
-
-                              {isInterrogating
-
-                                ? "Interrogating..."
-
-                                : interrogated
-
-                                ? "Interrogated"
-
-                                : suspect.occupation ||
-
-                                  "Suspect"}
-
-                            </p>
-
-                          </div>
-
-                        </div>
-
-                      </button>
-
-                    );
-
-                  }
-
-                )}
-
+              <div className="h-2 overflow-hidden rounded-full bg-white/[0.06]">
+                <div
+                  className="h-full rounded-full bg-emerald-400 transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
               </div>
-
             </div>
+          </div>
+        </section>
 
+        {/* Main layout */}
+        <div className="grid items-start gap-5 xl:grid-cols-[250px_minmax(0,1fr)_285px]">
+          {/* Left sidebar */}
+          <aside className="space-y-5">
+            <section className={`${panel} overflow-hidden`}>
+              <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-4">
+                <div className="flex items-center gap-2">
+                  <MapPin size={15} className="text-emerald-400" />
+                  <h2 className={label}>Locations</h2>
+                </div>
+                <span className="text-[11px] text-slate-500">
+                  {discoveredLocationCount}/{locations.length}
+                </span>
+              </div>
+
+              <div className="space-y-1 p-2">
+                {locations.map((location: AnyRecord) => {
+                  const discovered = discoveredLocationIds.has(location.id);
+                  const busy = investigating === location.id;
+
+                  return (
+                    <button
+                      key={location.id}
+                      onClick={() => void handleInvestigate(location.id)}
+                      disabled={busy || isReadOnly}
+                      className={`group w-full rounded-xl border px-3 py-3 text-left transition ${
+                        discovered
+                          ? "border-emerald-500/15 bg-emerald-500/[0.05]"
+                          : "border-transparent hover:border-white/[0.07] hover:bg-white/[0.025]"
+                      } disabled:cursor-default`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                            discovered ? "bg-emerald-400" : "bg-slate-700"
+                          }`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-medium text-slate-200">
+                            {location.name}
+                          </p>
+                          <p className="mt-1 text-[10px] text-slate-500">
+                            {busy
+                              ? "Investigating..."
+                              : discovered
+                                ? "Scene examined"
+                                : isReadOnly
+                                  ? "Not investigated"
+                                  : "Unexplored scene"}
+                          </p>
+                        </div>
+                        {discovered && (
+                          <Check size={13} className="text-emerald-400" />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            <section className={`${panel} overflow-hidden`}>
+              <div className="flex items-center justify-between border-b border-white/[0.07] px-4 py-4">
+                <div className="flex items-center gap-2">
+                  <Users size={15} className="text-amber-400" />
+                  <h2 className={label}>Suspects</h2>
+                </div>
+                <span className="text-[11px] text-slate-500">
+                  {interrogatedSuspectCount}/{suspects.length}
+                </span>
+              </div>
+
+              <div className="space-y-1 p-2">
+                {suspects.map((suspect: AnyRecord) => {
+                  const interrogated = interrogatedSuspectIds.has(suspect.id);
+                  const busy = interrogatingSuspect === suspect.id;
+
+                  return (
+                    <button
+                      key={suspect.id}
+                      onClick={() => void handleInterrogateSuspect(suspect.id)}
+                      disabled={busy || isReadOnly}
+                      className={`group w-full rounded-xl border px-3 py-3 text-left transition ${
+                        interrogated
+                          ? "border-amber-500/15 bg-amber-500/[0.05]"
+                          : "border-transparent hover:border-white/[0.07] hover:bg-white/[0.025]"
+                      } disabled:cursor-default`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span
+                          className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                            interrogated ? "bg-amber-400" : "bg-slate-700"
+                          }`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs font-medium text-slate-200">
+                            {suspect.name}
+                          </p>
+                          <p className="mt-1 truncate text-[10px] text-slate-500">
+                            {busy
+                              ? "Interrogating..."
+                              : interrogated
+                                ? "Interview recorded"
+                                : suspect.occupation || "Suspect"}
+                          </p>
+                        </div>
+                        {interrogated && (
+                          <Check size={13} className="text-amber-400" />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
           </aside>
 
-          {/* =================================================
-
-              CENTER
-
-          ================================================= */}
-
-          <section className="col-span-12 lg:col-span-6 xl:col-span-7">
-
-            <div className="rounded-xl border border-white/10 bg-[#0b0d10] overflow-hidden">
-
-              {/* Center header */}
-
-              <div className="px-6 py-5 border-b border-white/10">
-
-                <div className="flex items-start justify-between gap-4">
-
-                  <div>
-
-                    <p className="text-[10px] tracking-[0.2em] text-slate-600 uppercase">
-
-                      Investigation
-
-                    </p>
-
-                    <h2 className="text-xl font-semibold mt-1">
-
-                      Evidence & Findings
-
-                    </h2>
-
-                    <p className="text-xs text-slate-600 mt-2">
-
-                      Examine discovered clues and connect
-
-                      them to the case.
-
-                    </p>
-
-                  </div>
-
-                  <div className="shrink-0 text-right">
-
-                    <p className="text-2xl font-semibold">
-
-                      {discoveredEvidenceCount}
-
-                    </p>
-
-                    <p className="text-[10px] tracking-widest text-slate-600 uppercase">
-
-                      Clues
-
-                    </p>
-
-                  </div>
-
-                </div>
-
-                <div className="flex items-center justify-between mt-5">
-
-                  <p className="text-[10px] text-slate-600">
-
-                    {discoveredEvidenceCount} /{" "}
-
-                    {caseData.evidence.length} discovered
-
+          {/* Center: tabs */}
+          <section className={`${panel} min-w-0 overflow-hidden`}>
+            <div className="border-b border-white/[0.07] p-4 sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <p className={label}>Detective workspace</p>
+                  <h2 className="mt-2 text-xl font-semibold text-white">
+                    {activeTab === "investigation"
+                      ? "Evidence & findings"
+                      : "Case timeline"}
+                  </h2>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    {activeTab === "investigation"
+                      ? "Review discovered clues and examine evidence at each scene."
+                      : "Follow the recorded sequence of events surrounding the incident."}
                   </p>
-
-                  <div className="w-32 h-1 rounded-full bg-white/5 overflow-hidden">
-
-                    <div
-
-                      className="h-full bg-emerald-500 transition-all duration-500"
-
-                      style={{
-
-                        width: `${
-
-                          caseData.evidence.length ===
-
-                          0
-
-                            ? 0
-
-                            : (discoveredEvidenceCount /
-
-                                caseData.evidence
-
-                                  .length) *
-
-                              100
-
-                        }%`,
-
-                      }}
-
-                    />
-
-                  </div>
-
                 </div>
-
+                <span className="rounded-lg border border-white/[0.08] bg-white/[0.025] px-3 py-2 text-xs text-slate-400">
+                  {activeTab === "investigation"
+                    ? `${discoveredEvidenceCount}/${evidence.length} clues found`
+                    : `${timelineEvents.length} recorded events`}
+                </span>
               </div>
 
-              {/* Evidence */}
+              <div className="mt-5 flex gap-1 rounded-xl border border-white/[0.07] bg-black/20 p-1">
+                <button
+                  onClick={() => setActiveTab("investigation")}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-3 text-xs font-medium transition ${
+                    activeTab === "investigation"
+                      ? "bg-white/[0.08] text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-300"
+                  }`}
+                >
+                  <Search size={15} />
+                  Investigation
+                </button>
+                <button
+                  onClick={() => setActiveTab("timeline")}
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-3 text-xs font-medium transition ${
+                    activeTab === "timeline"
+                      ? "bg-white/[0.08] text-white shadow-sm"
+                      : "text-slate-500 hover:text-slate-300"
+                  }`}
+                >
+                  <Clock3 size={15} />
+                  Timeline
+                </button>
+              </div>
+            </div>
 
-              <div className="p-5">
-
+            {/* Investigation tab */}
+            {activeTab === "investigation" && (
+              <div className="p-4 sm:p-5">
                 {visibleEvidence.length === 0 ? (
-
-                  <div className="border border-dashed border-white/10 rounded-xl py-14 text-center">
-
-                    <div className="w-10 h-10 rounded-full bg-white/[0.03] border border-white/5 flex items-center justify-center mx-auto">
-
-                      <span className="text-slate-600">
-
-                        ?
-
-                      </span>
-
+                  <div className="rounded-2xl border border-dashed border-white/[0.12] px-5 py-14 text-center">
+                    <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.025] text-slate-500">
+                      <Fingerprint size={22} />
                     </div>
-
-                    <p className="text-sm text-slate-500 mt-4">
-
-                      No evidence has been discovered
-
-                      yet.
-
+                    <h3 className="mt-4 text-sm font-medium text-slate-300">
+                      No evidence uncovered
+                    </h3>
+                    <p className="mx-auto mt-2 max-w-sm text-xs leading-6 text-slate-500">
+                      Investigate a location from the left panel to inspect its
+                      scene and reveal associated evidence.
                     </p>
-
-                    <p className="text-xs text-slate-700 mt-2">
-
-                      Investigate a location to uncover
-
-                      clues.
-
-                    </p>
-
+                    <button
+                      onClick={() => {
+                        const firstUnexplored = locations.find(
+                          (location: AnyRecord) =>
+                            !discoveredLocationIds.has(location.id)
+                        );
+                        if (firstUnexplored) {
+                          void handleInvestigate(firstUnexplored.id);
+                        }
+                      }}
+                      disabled={
+                        isReadOnly ||
+                        !locations.some(
+                          (location: AnyRecord) =>
+                            !discoveredLocationIds.has(location.id)
+                        )
+                      }
+                      className="mt-5 inline-flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-4 py-2.5 text-xs text-emerald-300 transition hover:bg-emerald-500/[0.1] disabled:opacity-40"
+                    >
+                      Investigate a scene <ChevronRight size={14} />
+                    </button>
                   </div>
-
                 ) : (
-
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-
+                  <div className="grid gap-3 md:grid-cols-2">
                     {visibleEvidence.map(
-
-                      (
-
-                        evidence: any,
-
-                        index: number
-
-                      ) => {
-
-                        const discovered =
-
-                          discoveredEvidenceIds.has(
-
-                            evidence.id
-
-                          );
-
-                        const location =
-
-                          locationMap.get(
-
-                            evidence.locationId
-
-                          ) as { name: string } | undefined;;
+                      (item: AnyRecord, index: number) => {
+                        const discovered = discoveredEvidenceIds.has(item.id);
+                        const location = locationMap.get(item.locationId);
 
                         return (
-
-                          <div
-
-                            key={evidence.id}
-
-                            className={`
-
-                              rounded-xl border p-5 transition-all
-
-                              ${
-
-                                discovered
-
-                                  ? "border-emerald-500/15 bg-emerald-500/[0.035]"
-
-                                  : "border-white/10 bg-white/[0.015]"
-
-                              }
-
-                            `}
-
+                          <article
+                            key={item.id}
+                            className={`rounded-xl border p-4 transition ${
+                              discovered
+                                ? "border-emerald-500/15 bg-emerald-500/[0.035]"
+                                : "border-white/[0.08] bg-white/[0.015]"
+                            }`}
                           >
-
-                            <div className="flex items-start justify-between gap-4">
-
-                              <div className="min-w-0">
-
-                                <p className="text-[9px] tracking-[0.18em] uppercase text-slate-600">
-
-                                  Evidence #
-
-                                  {String(
-
-                                    index + 1
-
-                                  ).padStart(2, "0")}
-
-                                </p>
-
-                                <h3 className="text-sm font-medium text-slate-200 mt-2">
-
-                                  {evidence.name}
-
-                                </h3>
-
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex min-w-0 items-start gap-3">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-black/20 text-slate-400">
+                                  <Fingerprint size={16} />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className={label}>
+                                    Evidence {String(index + 1).padStart(2, "0")}
+                                  </p>
+                                  <h3 className="mt-1.5 text-sm font-medium text-slate-200">
+                                    {item.name}
+                                  </h3>
+                                </div>
                               </div>
-
                               {discovered && (
-
-                                <span className="shrink-0 text-[9px] uppercase tracking-wider text-emerald-400 border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 rounded">
-
+                                <span className="shrink-0 rounded-md border border-emerald-500/15 bg-emerald-500/[0.07] px-2 py-1 text-[9px] uppercase tracking-wider text-emerald-400">
                                   Found
-
                                 </span>
-
                               )}
-
                             </div>
 
-                            <p className="text-xs text-slate-500 leading-6 mt-3">
-
-                              {evidence.description}
-
+                            <p className="mt-4 text-xs leading-6 text-slate-400">
+                              {item.description}
                             </p>
 
                             {location && (
-
-                              <div className="flex items-center gap-2 mt-4">
-
-                                <span className="text-[10px] text-slate-700 uppercase tracking-wider">
-
-                                  Location
-
-                                </span>
-
-                                <span className="text-[10px] text-slate-500">
-
-                                  {location.name}
-
-                                </span>
-
-                              </div>
-
+                              <p className="mt-3 flex items-center gap-1.5 text-[10px] text-slate-500">
+                                <MapPin size={12} />
+                                {location.name}
+                              </p>
                             )}
 
-                            <div className="mt-5">
-
-                              <button
-
-                                onClick={() =>
-
-                                  handleExamineEvidence(
-
-                                    evidence.id
-
-                                  )
-
-                                }
-
-                                disabled={
-
-                                  discovered ||
-
-                                  examiningEvidence ===
-
-                                    evidence.id
-
-                                }
-
-                                className={`
-
-                                  text-xs px-3 py-2 rounded-lg border transition
-
-                                  ${
-
-                                    discovered
-
-                                      ? "border-emerald-500/10 text-emerald-400/60 cursor-default"
-
-                                      : "border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/5"
-
-                                  }
-
-                                `}
-
-                              >
-
-                                {examiningEvidence ===
-
-                                evidence.id
-
-                                  ? "Examining..."
-
-                                  : discovered
-
-                                  ? "Evidence Examined"
-
-                                  : "Examine Evidence"}
-
-                              </button>
-
-                            </div>
-
-                          </div>
-
+                            <button
+                              onClick={() => void handleExamineEvidence(item.id)}
+                              disabled={
+                                discovered ||
+                                examiningEvidence === item.id ||
+                                isReadOnly
+                              }
+                              className={`mt-4 w-full rounded-lg border px-3 py-2.5 text-xs transition ${
+                                discovered
+                                  ? "border-emerald-500/10 text-emerald-400/70"
+                                  : "border-white/[0.09] text-slate-300 hover:bg-white/[0.04]"
+                              } disabled:cursor-default`}
+                            >
+                              {examiningEvidence === item.id
+                                ? "Examining evidence..."
+                                : discovered
+                                  ? "Evidence examined"
+                                  : isReadOnly
+                                    ? "Not examined in this session"
+                                    : "Examine evidence"}
+                            </button>
+                          </article>
                         );
-
                       }
-
                     )}
-
                   </div>
-
                 )}
-
               </div>
+            )}
 
-            </div>
-
-          </section>
-
-          {/* =================================================
-
-              RIGHT SIDEBAR
-
-          ================================================= */}
-
-          <aside className="col-span-12 lg:col-span-3 xl:col-span-3">
-
-            <div className="rounded-xl border border-white/10 bg-[#0b0d10] overflow-hidden">
-
-              <div className="px-5 py-5 border-b border-white/10">
-
-                <p className="text-[10px] tracking-[0.2em] text-slate-600 uppercase">
-
-                  Case File
-
-                </p>
-
-                <h2 className="text-lg font-semibold mt-1">
-
-                  Investigation Status
-
-                </h2>
-
-              </div>
-
-              <div className="p-5">
-
-                {/* Progress */}
-
-                <div>
-
-                  <div className="flex items-center justify-between">
-
-                    <p className="text-xs text-slate-500">
-
-                      Overall Progress
-
-                    </p>
-
-                    <p className="text-xs text-slate-400">
-
-                      {progress}%
-
-                    </p>
-
+            {/* Timeline tab */}
+            {activeTab === "timeline" && (
+              <div className="p-5 sm:p-7">
+                <div className="mb-6 rounded-xl border border-white/[0.07] bg-black/15 p-4">
+                  <div className="flex items-center gap-2">
+                    <Clock3 size={16} className="text-emerald-400" />
+                    <p className={label}>Chronological record</p>
                   </div>
-
-                  <div className="h-1.5 rounded-full bg-white/5 overflow-hidden mt-3">
-
-                    <div
-
-                      className="h-full bg-emerald-500 transition-all duration-500"
-
-                      style={{
-
-                        width: `${progress}%`,
-
-                      }}
-
-                    />
-
-                  </div>
-
-                </div>
-
-                {/* Stats */}
-
-                <div className="grid grid-cols-2 gap-3 mt-6">
-
-                  <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-
-                    <p className="text-[9px] uppercase tracking-wider text-slate-600">
-
-                      Locations
-
-                    </p>
-
-                    <p className="text-xl font-semibold mt-2">
-
-                      {discoveredLocationCount}
-
-                      <span className="text-xs text-slate-700">
-
-                        /{caseData.locations.length}
-
-                      </span>
-
-                    </p>
-
-                  </div>
-
-                  <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-
-                    <p className="text-[9px] uppercase tracking-wider text-slate-600">
-
-                      Evidence
-
-                    </p>
-
-                    <p className="text-xl font-semibold mt-2">
-
-                      {discoveredEvidenceCount}
-
-                      <span className="text-xs text-slate-700">
-
-                        /{caseData.evidence.length}
-
-                      </span>
-
-                    </p>
-
-                  </div>
-
-                  <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-
-                    <p className="text-[9px] uppercase tracking-wider text-slate-600">
-
-                      Suspects
-
-                    </p>
-
-                    <p className="text-xl font-semibold mt-2">
-
-                      {interrogatedSuspectCount}
-
-                      <span className="text-xs text-slate-700">
-
-                        /{caseData.suspects.length}
-
-                      </span>
-
-                    </p>
-
-                  </div>
-
-                  <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
-
-                    <p className="text-[9px] uppercase tracking-wider text-slate-600">
-
-                      Status
-
-                    </p>
-
-                    <p className="text-sm font-semibold mt-3 text-emerald-400">
-
-                      {session.status === "completed"
-
-                        ? "Closed"
-
-                        : "Active"}
-
-                    </p>
-
-                  </div>
-
-                </div>
-
-                {/* Notes placeholder */}
-
-                <div className="mt-6 rounded-xl border border-dashed border-white/10 p-5">
-
-                  <p className="text-[10px] tracking-[0.18em] uppercase text-slate-600">
-
-                    Investigator Notes
-
+                  <p className="mt-2 text-xs leading-6 text-slate-500">
+                    Events are shown in the order stored in the generated case.
+                    Compare the recorded times with alibis and physical evidence
+                    as you investigate.
                   </p>
-
-                  <p className="text-xs text-slate-700 mt-3 leading-5">
-
-                    Record observations and build your
-
-                    theory here.
-
-                  </p>
-
                 </div>
 
-                {/* Accusation */}
-
-                <button
-
-                  onClick={() => {
-
-                    setError("");
-
-                    setAccusation({
-
-                      suspectId:
-
-                        accusation.suspectId ||
-
-                        "",
-
-                      motive:
-
-                        accusation.motive || "",
-
-                      method:
-
-                        accusation.method || "",
-
-                      reasoning:
-
-                        accusation.reasoning || "",
-
-                    });
-
-                    if (!isReviewMode && session.status !== "completed") {
-                      setShowAccusation(true);
-                    }
-
-                  }}
-
-                  disabled={
-
-                    session.status === "completed"
-
-                  }
-
-                  className={`
-
-                    w-full mt-5 py-3 rounded-xl text-xs font-medium border transition
-
-                    ${
-
-                      session.status === "completed"
-
-                        ? "border-white/5 text-slate-700 cursor-not-allowed"
-
-                        : "border-red-500/20 bg-red-500/[0.04] text-red-400 hover:bg-red-500/[0.08]"
-
-                    }
-
-                  `}
-
-                >
-
-                  {session.status === "completed"
-
-                    ? "Accusation Submitted"
-
-                    : "Make Accusation"}
-
-                </button>
-
-              </div>
-
-            </div>
-
-          </aside>
-
-        </div>
-
-      </div>
-
-      {/* =====================================================
-
-          LOCATION INVESTIGATION MODAL
-
-      ===================================================== */}
-
-      {selectedLocation && (
-
-        <div
-
-          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-6"
-
-          onClick={() =>
-
-            setSelectedLocation(null)
-
-          }
-
-        >
-
-          <div
-
-            className="w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-[#0d0f12] border border-white/10 rounded-2xl shadow-2xl"
-
-            onClick={(e) =>
-
-              e.stopPropagation()
-
-            }
-
-          >
-
-            {/* Header */}
-
-            <div className="px-6 py-5 border-b border-white/10 flex items-start justify-between gap-4">
-
-              <div>
-
-                <p className="text-[10px] tracking-[0.2em] text-emerald-500 uppercase">
-
-                  Location Investigation
-
-                </p>
-
-                <h2 className="text-xl font-semibold text-slate-100 mt-1">
-
-                  {selectedLocation.name}
-
-                </h2>
-
-                <p className="text-xs text-slate-600 mt-1">
-
-                  Examine the scene for clues and
-
-                  inconsistencies.
-
-                </p>
-
-              </div>
-
-              <button
-
-                onClick={() =>
-
-                  setSelectedLocation(null)
-
-                }
-
-                className="w-8 h-8 shrink-0 rounded-lg border border-white/10 text-slate-500 hover:text-slate-200 hover:bg-white/5 transition"
-
-              >
-
-                ×
-
-              </button>
-
-            </div>
-
-            <div className="p-6 space-y-6">
-
-              {/* Scene */}
-
-              <section>
-
-                <p className="text-[10px] tracking-[0.18em] text-slate-600 uppercase mb-2">
-
-                  Scene
-
-                </p>
-
-                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-5">
-
-                  <p className="text-sm leading-7 text-slate-300">
-
-                    {selectedLocation.description}
-
-                  </p>
-
-                </div>
-
-              </section>
-
-              {/* Discoverable details */}
-
-              {selectedLocation.discoverableDetails &&
-
-                selectedLocation
-
-                  .discoverableDetails.length >
-
-                  0 && (
-
-                  <section>
-
-                    <p className="text-[10px] tracking-[0.18em] text-slate-600 uppercase mb-3">
-
-                      Discoverable Details
-
+                {timelineEvents.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-white/[0.1] py-12 text-center">
+                    <Clock3 className="mx-auto text-slate-600" size={25} />
+                    <p className="mt-4 text-sm text-slate-400">
+                      No timeline events recorded
                     </p>
+                    <p className="mt-2 text-xs text-slate-600">
+                      This case does not contain any timeline entries.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="relative ml-2 space-y-0">
+                    <div className="absolute bottom-5 left-[11px] top-5 w-px bg-gradient-to-b from-emerald-500/40 via-white/10 to-transparent" />
 
-                    <div className="space-y-3">
+                    {timelineEvents.map(
+                      (event: AnyRecord, index: number) => {
+                        const actor =
+                          event.actorId === "victim"
+                            ? victim.name
+                            : suspectMap.get(event.actorId)?.name ??
+                              event.actorId ??
+                              "Unknown actor";
 
-                      {selectedLocation.discoverableDetails.map(
-
-                        (
-
-                          detail: string,
-
-                          index: number
-
-                        ) => (
-
-                          <div
-
-                            key={index}
-
-                            className="flex gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4"
-
-                          >
-
-                            <div className="w-6 h-6 shrink-0 rounded-full bg-emerald-500/10 border border-emerald-500/10 flex items-center justify-center">
-
-                              <span className="text-[10px] text-emerald-400">
-
-                                {index + 1}
-
-                              </span>
-
-                            </div>
-
-                            <p className="text-sm leading-6 text-slate-300">
-
-                              {detail}
-
-                            </p>
-
-                          </div>
-
-                        )
-
-                      )}
-
-                    </div>
-
-                  </section>
-
-                )}
-
-              {/* Evidence at location */}
-
-              <section>
-
-                <div className="flex items-center justify-between mb-3">
-
-                  <p className="text-[10px] tracking-[0.18em] text-slate-600 uppercase">
-
-                    Evidence at Scene
-
-                  </p>
-
-                  <span className="text-[10px] text-slate-600">
-
-                    {locationEvidence.length} clues
-
-                  </span>
-
-                </div>
-
-                <div className="space-y-3">
-
-                  {locationEvidence.length > 0 ? (
-
-                    locationEvidence.map(
-
-                      (evidence: any) => {
-
-                        const discovered =
-
-                          discoveredEvidenceIds.has(
-
-                            evidence.id
-
-                          );
+                        const eventLocation = locationMap.get(
+                          event.locationId
+                        );
 
                         return (
-
-                          <div
-
-                            key={evidence.id}
-
-                            className={`
-
-                              rounded-xl border p-4 transition
-
-                              ${
-
-                                discovered
-
-                                  ? "border-emerald-500/20 bg-emerald-500/[0.04]"
-
-                                  : "border-white/10 bg-white/[0.02]"
-
-                              }
-
-                            `}
-
+                          <article
+                            key={event.id ?? `${event.time}-${index}`}
+                            className="relative pb-6 pl-9 last:pb-0"
                           >
-
-                            <div className="flex items-start justify-between gap-4">
-
-                              <div>
-
-                                <p className="text-sm font-medium text-slate-200">
-
-                                  {evidence.name}
-
-                                </p>
-
-                                <p className="text-xs text-slate-500 mt-1 leading-5">
-
-                                  {evidence.description}
-
-                                </p>
-
-                              </div>
-
-                              {discovered && (
-
-                                <span className="shrink-0 text-[9px] uppercase tracking-wider text-emerald-400 border border-emerald-500/20 bg-emerald-500/10 px-2 py-1 rounded">
-
-                                  Found
-
-                                </span>
-
-                              )}
-
-                            </div>
-
-                            <div className="mt-4">
-
-                              <button
-
-                                onClick={() =>
-
-                                  handleExamineEvidence(
-
-                                    evidence.id
-
-                                  )
-
-                                }
-
-                                disabled={
-
-                                  discovered ||
-
-                                  examiningEvidence ===
-
-                                    evidence.id
-
-                                }
-
-                                className={`
-
-                                  text-xs px-3 py-2 rounded-lg border transition
-
-                                  ${
-
-                                    discovered
-
-                                      ? "border-emerald-500/10 text-emerald-400/60 cursor-default"
-
-                                      : "border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/5"
-
-                                  }
-
-                                `}
-
-                              >
-
-                                {examiningEvidence ===
-
-                                evidence.id
-
-                                  ? "Examining..."
-
-                                  : discovered
-
-                                  ? "Evidence Examined"
-
-                                  : "Examine Evidence"}
-
-                              </button>
-
-                            </div>
-
-                          </div>
-
-                        );
-
-                      }
-
-                    )
-
-                  ) : (
-
-                    <div className="rounded-xl border border-dashed border-white/10 py-8 text-center">
-
-                      <p className="text-xs text-slate-600">
-
-                        No evidence has been recorded at
-
-                        this location.
-
-                      </p>
-
-                    </div>
-
-                  )}
-
-                </div>
-
-              </section>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      )}
-
-      {/* =====================================================
-
-          INTERROGATION MODAL
-
-      ===================================================== */}
-
-      {selectedSuspect && (
-
-        <div
-
-          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-6"
-
-          onClick={() =>
-
-            setSelectedSuspect(null)
-
-          }
-
-        >
-
-          <div
-
-            className="w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-[#0d0f12] border border-white/10 rounded-2xl shadow-2xl"
-
-            onClick={(e) =>
-
-              e.stopPropagation()
-
-            }
-
-          >
-
-            {/* Header */}
-
-            <div className="px-6 py-5 border-b border-white/10 flex items-start justify-between gap-4">
-
-              <div>
-
-                <p className="text-[10px] tracking-[0.2em] text-amber-500 uppercase">
-
-                  Interrogation
-
-                </p>
-
-                <h2 className="text-xl font-semibold text-slate-100 mt-1">
-
-                  {selectedSuspect.name}
-
-                </h2>
-
-                <p className="text-xs text-slate-600 mt-1">
-
-                  {selectedSuspect.age
-
-                    ? `${selectedSuspect.age} years old`
-
-                    : "Age unknown"}
-
-                  {" • "}
-
-                  {selectedSuspect.occupation ||
-
-                    "Occupation unknown"}
-
-                </p>
-
-              </div>
-
-              <button
-
-                onClick={() =>
-
-                  setSelectedSuspect(null)
-
-                }
-
-                className="w-8 h-8 shrink-0 rounded-lg border border-white/10 text-slate-500 hover:text-slate-200 hover:bg-white/5 transition"
-
-              >
-
-                ×
-
-              </button>
-
-            </div>
-
-            <div className="p-6 space-y-6">
-
-              {/* Relationship */}
-
-              <section>
-
-                <p className="text-[10px] tracking-[0.18em] text-slate-600 uppercase mb-2">
-
-                  Relationship to Victim
-
-                </p>
-
-                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-
-                  <p className="text-sm text-slate-300">
-
-                    {selectedSuspect.relationshipToVictim ||
-
-                      "No information available."}
-
-                  </p>
-
-                </div>
-
-              </section>
-
-              {/* Alibi */}
-
-              <section>
-
-                <p className="text-[10px] tracking-[0.18em] text-slate-600 uppercase mb-2">
-
-                  Alibi
-
-                </p>
-
-                <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-
-                  <p className="text-sm text-slate-300 leading-6">
-
-                    {selectedSuspect.alibi ||
-
-                      "No alibi provided."}
-
-                  </p>
-
-                </div>
-
-              </section>
-
-              {/* Personality */}
-
-              {selectedSuspect.personality && (
-
-                <section>
-
-                  <p className="text-[10px] tracking-[0.18em] text-slate-600 uppercase mb-2">
-
-                    Personality
-
-                  </p>
-
-                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-
-                    <p className="text-sm text-slate-400 leading-6">
-
-                      {selectedSuspect.personality}
-
-                    </p>
-
-                  </div>
-
-                </section>
-
-              )}
-
-              {/* Statements */}
-
-              <section>
-
-                <p className="text-[10px] tracking-[0.18em] text-slate-600 uppercase mb-3">
-
-                  Interview Transcript
-
-                </p>
-
-                <div className="space-y-3">
-
-                  {selectedSuspect.statements &&
-
-                  selectedSuspect.statements.length >
-
-                    0 ? (
-
-                    selectedSuspect.statements.map(
-
-                      (
-
-                        statement: string,
-
-                        index: number
-
-                      ) => (
-
-                        <div
-
-                          key={index}
-
-                          className="rounded-xl border border-white/10 bg-white/[0.02] p-4"
-
-                        >
-
-                          <div className="flex gap-3">
-
-                            <span className="text-[10px] text-amber-500/70 pt-0.5">
-
-                              {String(
-
-                                index + 1
-
-                              ).padStart(2, "0")}
-
+                            <span className="absolute left-0 top-1 flex h-[23px] w-[23px] items-center justify-center rounded-full border border-emerald-500/25 bg-[#101216]">
+                              <span className="h-2 w-2 rounded-full bg-emerald-400" />
                             </span>
 
-                            <p className="text-sm leading-6 text-slate-300">
+                            <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-4 transition hover:border-white/[0.12] sm:p-5">
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <span className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/15 bg-emerald-500/[0.05] px-2.5 py-1.5 text-[11px] font-medium text-emerald-300">
+                                  <Clock3 size={12} />
+                                  {event.time || "Time not recorded"}
+                                </span>
+                                <span className="text-[10px] uppercase tracking-wider text-slate-600">
+                                  Event {String(index + 1).padStart(2, "0")}
+                                </span>
+                              </div>
 
-                              {statement}
+                              <p className="mt-4 text-sm leading-7 text-slate-300">
+                                {event.description ||
+                                  "No description recorded for this event."}
+                              </p>
 
-                            </p>
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                {event.actorId && (
+                                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-black/20 px-2.5 py-1.5 text-[10px] text-slate-400">
+                                    <UserRound size={12} />
+                                    {actor}
+                                  </span>
+                                )}
+                                {eventLocation && (
+                                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-white/[0.07] bg-black/20 px-2.5 py-1.5 text-[10px] text-slate-400">
+                                    <MapPin size={12} />
+                                    {eventLocation.name}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </article>
+                        );
+                      }
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
 
-                          </div>
+          {/* Right sidebar */}
+          <aside className="space-y-5">
+            <section className={`${panel} overflow-hidden`}>
+              <div className="border-b border-white/[0.07] p-5">
+                <p className={label}>Case control</p>
+                <h2 className="mt-2 text-lg font-semibold text-white">
+                  Investigation status
+                </h2>
+              </div>
 
-                        </div>
-
-                      )
-
-                    )
-
-                  ) : (
-
-                    <div className="rounded-xl border border-dashed border-white/10 py-8 text-center">
-
-                      <p className="text-xs text-slate-600">
-
-                        No statements available.
-
-                      </p>
-
-                    </div>
-
-                  )}
-
+              <div className="space-y-5 p-5">
+                <div>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Overall progress</span>
+                    <span className="font-medium text-emerald-400">
+                      {progress}%
+                    </span>
+                  </div>
+                  <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]">
+                    <div
+                      className="h-full rounded-full bg-emerald-400 transition-all duration-500"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
                 </div>
 
-              </section>
+                <div className="grid grid-cols-2 gap-3">
+                  <Stat
+                    label="Scenes"
+                    value={`${discoveredLocationCount}/${locations.length}`}
+                  />
+                  <Stat
+                    label="Clues"
+                    value={`${discoveredEvidenceCount}/${evidence.length}`}
+                  />
+                  <Stat
+                    label="Interviews"
+                    value={`${interrogatedSuspectCount}/${suspects.length}`}
+                  />
+                  <Stat
+                    label="Case status"
+                    value={isCompleted ? "Closed" : "Open"}
+                  />
+                </div>
 
-            </div>
+                <div className="rounded-xl border border-white/[0.07] bg-black/15 p-4">
+                  <div className="flex items-center gap-2">
+                    <FileText size={14} className="text-slate-400" />
+                    <p className={label}>Investigator notes</p>
+                  </div>
+                  <p className="mt-2 text-xs leading-6 text-slate-500">
+                    Compare the timeline, interview statements, and discovered
+                    evidence before deciding who is responsible.
+                  </p>
+                </div>
 
-          </div>
+                {isReviewMode && isCompleted ? (
+                  <div className="rounded-xl border border-emerald-500/15 bg-emerald-500/[0.04] p-4">
+                    <CheckCircle2 size={18} className="text-emerald-400" />
+                    <p className="mt-2 text-sm font-medium text-emerald-300">
+                      Archived investigation
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      This session is read-only. Your original decision and
+                      evaluation are available below.
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setError("");
+                      setAccusation({
+                        suspectId: accusation.suspectId || "",
+                        motive: accusation.motive || "",
+                        method: accusation.method || "",
+                        reasoning: accusation.reasoning || "",
+                      });
+                      setShowAccusation(true);
+                    }}
+                    disabled={isCompleted}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/[0.06] px-4 py-3.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/[0.1] disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ShieldAlert size={15} />
+                    {isCompleted ? "Accusation submitted" : "Make accusation"}
+                  </button>
+                )}
+              </div>
+            </section>
 
-        </div>
-
-      )}
-
-      {/* =====================================================
-
-          ACCUSATION MODAL
-
-      ===================================================== */}
-
-      {/* =====================================================
-          PAST INVESTIGATION REVIEW
-      ===================================================== */}
-
-      {isReviewMode && session.status === "completed" && (
-        <section className="mx-auto max-w-5xl px-6 py-8">
-          <div className="rounded-2xl border border-white/10 bg-[#0d0f12] p-6 md:p-8">
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.22em] text-emerald-400">
-                  CaseZero / Archive
-                </p>
-                <h2 className="mt-2 text-2xl font-semibold text-slate-100">
-                  Investigation Review
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
-                  This investigation is read-only. Your original accusation and evaluation are shown below.
+            <section className={`${panel} p-5`}>
+              <p className={label}>Case reference</p>
+              <p className="mt-3 break-all font-mono text-[11px] leading-5 text-slate-500">
+                {sessionId}
+              </p>
+              <div className="mt-4 border-t border-white/[0.07] pt-4">
+                <p className={label}>Difficulty</p>
+                <p className="mt-2 text-sm capitalize text-slate-300">
+                  {caseData.difficulty || "Not specified"}
                 </p>
               </div>
-              <span className="w-fit rounded-full border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
+            </section>
+          </aside>
+        </div>
+
+        {/* Completed investigation review */}
+        {isReviewMode && isCompleted && (
+          <section className={`${panel} mt-6 p-5 sm:p-7`}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className={label}>Case archive</p>
+                <h2 className="mt-2 text-xl font-semibold text-white">
+                  Investigation review
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  Your submitted accusation and evaluation are shown below.
+                </p>
+              </div>
+              <span className="w-fit rounded-full border border-emerald-500/20 bg-emerald-500/[0.06] px-3 py-1.5 text-[10px] uppercase tracking-wider text-emerald-400">
                 Completed
               </span>
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-center">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-slate-500">
-                Final Score
+            <div className="mt-6 rounded-2xl border border-white/[0.08] bg-black/15 p-6 text-center">
+              <p className={label}>Final score</p>
+              <p className="mt-3 text-5xl font-semibold text-white">
+                {finalScore}
               </p>
-              <p className="mt-3 text-5xl font-semibold text-slate-100">
-                {session.result?.score ?? result?.score ?? 0}
-              </p>
-              <p className="mt-1 text-xs text-slate-600">/ 100</p>
-              <div className="mx-auto mt-5 h-2 max-w-md overflow-hidden rounded-full bg-white/10">
+              <p className="mt-1 text-xs text-slate-500">out of 100</p>
+              <div className="mx-auto mt-5 h-2 max-w-md overflow-hidden rounded-full bg-white/[0.06]">
                 <div
                   className="h-full rounded-full bg-emerald-400"
                   style={{
-                    width: `${Math.min(100, Math.max(0, Number(session.result?.score ?? result?.score ?? 0))) }%`,
+                    width: `${Math.min(100, Math.max(0, finalScore))}%`,
                   }}
                 />
               </div>
             </div>
 
-            <div className="mt-8">
-              <h3 className="mb-4 text-lg font-semibold text-slate-100">
-                Your Submitted Accusation
-              </h3>
+            <h3 className="mb-4 mt-7 text-sm font-semibold text-slate-200">
+              Submitted accusation
+            </h3>
 
-              {session.accusation ? (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 md:col-span-2">
-                    <p className="mb-2 text-[10px] uppercase tracking-[0.16em] text-slate-500">
-                      Accused Suspect
-                    </p>
-                    <p className="text-base font-semibold text-slate-100">
-                      {caseData.suspects?.find(
-                        (suspect: any) => suspect.id === session.accusation?.suspectId
-                      )?.name ?? session.accusation.suspectId ?? "Not recorded"}
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                    <p className="mb-2 text-[10px] uppercase tracking-[0.16em] text-slate-500">Motive</p>
-                    <p className="whitespace-pre-wrap text-sm leading-6 text-slate-300">
-                      {session.accusation.motive || "Not provided"}
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                    <p className="mb-2 text-[10px] uppercase tracking-[0.16em] text-slate-500">Method</p>
-                    <p className="whitespace-pre-wrap text-sm leading-6 text-slate-300">
-                      {session.accusation.method || "Not provided"}
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 md:col-span-2">
-                    <p className="mb-2 text-[10px] uppercase tracking-[0.16em] text-slate-500">Your Reasoning</p>
-                    <p className="whitespace-pre-wrap text-sm leading-6 text-slate-300">
-                      {session.accusation.reasoning || "Not provided"}
-                    </p>
-                  </div>
+            {session.accusation ? (
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-4 md:col-span-2">
+                  <p className={label}>Accused suspect</p>
+                  <p className="mt-2 text-sm font-medium text-slate-200">
+                    {suspectMap.get(session.accusation.suspectId)?.name ??
+                      session.accusation.suspectId ??
+                      "Not recorded"}
+                  </p>
                 </div>
-              ) : (
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4 text-sm text-amber-300">
-                  No submitted accusation was saved for this session.
-                </div>
-              )}
-            </div>
 
-            {(session.result || result) && (
-              <div className="mt-8">
-                <h3 className="mb-4 text-lg font-semibold text-slate-100">
-                  Evaluation Breakdown
+                {[
+                  { title: "Motive", value: session.accusation.motive },
+                  { title: "Method", value: session.accusation.method },
+                  {
+                    title: "Reasoning",
+                    value: session.accusation.reasoning,
+                    full: true,
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.title}
+                    className={`rounded-xl border border-white/[0.07] bg-white/[0.015] p-4 ${
+                      item.full ? "md:col-span-2" : ""
+                    }`}
+                  >
+                    <p className={label}>{item.title}</p>
+                    <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-300">
+                      {item.value || "Not provided"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-xl border border-amber-500/20 bg-amber-500/[0.04] p-4 text-sm text-amber-300">
+                No submitted accusation was saved for this session.
+              </p>
+            )}
+
+            {evaluatedResult && (
+              <div className="mt-7">
+                <h3 className="mb-4 text-sm font-semibold text-slate-200">
+                  Evaluation breakdown
                 </h3>
                 <div className="grid gap-3 sm:grid-cols-3">
                   {[
-                    { label: "Culprit", correct: (session.result ?? result)?.correctCulprit },
-                    { label: "Motive", correct: (session.result ?? result)?.correctMotive },
-                    { label: "Method", correct: (session.result ?? result)?.correctMethod },
+                    {
+                      label: "Culprit",
+                      correct: evaluatedResult.correctCulprit,
+                    },
+                    {
+                      label: "Motive",
+                      correct: evaluatedResult.correctMotive,
+                    },
+                    {
+                      label: "Method",
+                      correct: evaluatedResult.correctMethod,
+                    },
                   ].map((item) => (
-                    <div key={item.label} className={`rounded-xl border p-4 ${item.correct ? "border-emerald-500/20 bg-emerald-500/[0.04]" : "border-red-500/20 bg-red-500/[0.04]"}`}>
-                      <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">
-                        {item.label}
-                      </p>
-                      <p className={`mt-2 text-sm font-medium ${item.correct ? "text-emerald-400" : "text-red-400"}`}>
+                    <div
+                      key={item.label}
+                      className={`rounded-xl border p-4 ${
+                        item.correct
+                          ? "border-emerald-500/20 bg-emerald-500/[0.04]"
+                          : "border-red-500/20 bg-red-500/[0.04]"
+                      }`}
+                    >
+                      <p className={label}>{item.label}</p>
+                      <p
+                        className={`mt-2 text-sm font-medium ${
+                          item.correct ? "text-emerald-400" : "text-red-400"
+                        }`}
+                      >
                         {item.correct ? "Correct" : "Incorrect"}
                       </p>
                     </div>
@@ -2521,518 +1228,630 @@ const isReviewMode = searchParams.get("mode") === "review";
                 </div>
               </div>
             )}
-          </div>
-        </section>
-      )}
+          </section>
+        )}
+      </div>
 
-      {showAccusation && !isReviewMode && session.status !== "completed" && (
-
+      {/* Location modal */}
+      {selectedLocation && (
         <div
-
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-6"
-
-          onClick={() =>
-
-            setShowAccusation(false)
-
-          }
-
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm sm:p-6"
+          onClick={() => setSelectedLocation(null)}
         >
-
           <div
-
-            className="w-full max-w-xl max-h-[90vh] overflow-y-auto bg-[#0d0f12] border border-white/10 rounded-2xl shadow-2xl"
-
-            onClick={(e) =>
-
-              e.stopPropagation()
-
-            }
-
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/[0.1] bg-[#101216] shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
           >
-
-            <div className="px-6 py-5 border-b border-white/10 flex items-start justify-between">
-
+            <div className="flex items-start justify-between gap-4 border-b border-white/[0.08] p-5 sm:p-6">
               <div>
-
-                <p className="text-[10px] tracking-[0.2em] text-red-400 uppercase">
-
-                  Final Decision
-
-                </p>
-
-                <h2 className="text-xl font-semibold mt-1">
-
-                  Make Your Accusation
-
+                <p className={label}>Scene investigation</p>
+                <h2 className="mt-2 text-xl font-semibold text-white">
+                  {selectedLocation.name}
                 </h2>
-
-                <p className="text-xs text-slate-600 mt-1">
-
-                  State who you believe is responsible
-
-                  and explain your reasoning.
-
+                <p className="mt-1 text-xs leading-5 text-slate-500">
+                  Examine the scene and compare its details with other evidence.
                 </p>
-
               </div>
-
               <button
-
-                onClick={() =>
-
-                  setShowAccusation(false)
-
-                }
-
-                className="w-8 h-8 rounded-lg border border-white/10 text-slate-500 hover:text-slate-200 hover:bg-white/5 transition"
-
+                onClick={() => setSelectedLocation(null)}
+                className="rounded-lg border border-white/10 p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+                aria-label="Close location details"
               >
-
-                ×
-
+                <X size={17} />
               </button>
-
             </div>
 
-            <div className="p-6 space-y-5">
+            <div className="space-y-6 p-5 sm:p-6">
+              <section>
+                <p className={label}>Scene description</p>
+                <div className="mt-3 rounded-xl border border-white/[0.07] bg-black/15 p-4">
+                  <p className="whitespace-pre-wrap text-sm leading-7 text-slate-300">
+                    {selectedLocation.description ||
+                      "No scene description recorded."}
+                  </p>
+                </div>
+              </section>
 
-              {/* Suspect */}
+              {!!selectedLocation.discoverableDetails?.length && (
+                <section>
+                  <p className={label}>Discoverable details</p>
+                  <div className="mt-3 space-y-2">
+                    {selectedLocation.discoverableDetails.map(
+                      (detail: string, index: number) => (
+                        <div
+                          key={`${detail}-${index}`}
+                          className="flex gap-3 rounded-xl border border-white/[0.07] bg-white/[0.015] p-4"
+                        >
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-emerald-500/[0.08] text-[10px] text-emerald-400">
+                            {index + 1}
+                          </span>
+                          <p className="text-sm leading-6 text-slate-300">
+                            {detail}
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </section>
+              )}
 
-              <div>
+              <section>
+                <div className="flex items-center justify-between gap-3">
+                  <p className={label}>Evidence at this scene</p>
+                  <span className="text-[10px] text-slate-500">
+                    {locationEvidence.length} items
+                  </span>
+                </div>
 
-                <label className="text-[10px] tracking-[0.15em] uppercase text-slate-600">
+                <div className="mt-3 space-y-3">
+                  {locationEvidence.length === 0 ? (
+                    <p className="rounded-xl border border-dashed border-white/10 p-5 text-center text-xs text-slate-500">
+                      No evidence is associated with this location.
+                    </p>
+                  ) : (
+                    locationEvidence.map((item: AnyRecord) => {
+                      const discovered = discoveredEvidenceIds.has(item.id);
+                      const busy = examiningEvidence === item.id;
 
-                  Suspect
-
-                </label>
-
-                <select
-
-                  value={accusation.suspectId}
-
-                  onChange={(e) =>
-
-                    setAccusation({
-
-                      ...accusation,
-
-                      suspectId:
-
-                        e.target.value,
-
+                      return (
+                        <div
+                          key={item.id}
+                          className="rounded-xl border border-white/[0.07] bg-white/[0.015] p-4"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <h3 className="text-sm font-medium text-slate-200">
+                              {item.name}
+                            </h3>
+                            {discovered && (
+                              <CheckCircle2
+                                size={15}
+                                className="shrink-0 text-emerald-400"
+                              />
+                            )}
+                          </div>
+                          <p className="mt-2 text-xs leading-6 text-slate-400">
+                            {item.description}
+                          </p>
+                          <button
+                            onClick={() => void handleExamineEvidence(item.id)}
+                            disabled={discovered || busy || isReadOnly}
+                            className="mt-4 rounded-lg border border-white/[0.09] px-3 py-2 text-xs text-slate-300 transition hover:bg-white/[0.04] disabled:opacity-50"
+                          >
+                            {busy
+                              ? "Examining..."
+                              : discovered
+                                ? "Evidence examined"
+                                : isReadOnly
+                                  ? "Not examined in this session"
+                                  : "Examine evidence"}
+                          </button>
+                        </div>
+                      );
                     })
-
-                  }
-
-                  className="w-full mt-2 bg-[#090a0c] border border-white/10 rounded-lg px-3 py-3 text-sm text-slate-300 outline-none focus:border-white/20"
-
-                >
-
-                  <option value="">
-
-                    Select suspect
-
-                  </option>
-
-                  {caseData.suspects.map(
-
-                    (suspect: any) => (
-
-                      <option
-
-                        key={suspect.id}
-
-                        value={suspect.id}
-
-                      >
-
-                        {suspect.name}
-
-                      </option>
-
-                    )
-
                   )}
-
-                </select>
-
-              </div>
-
-              {/* Motive */}
-
-              <div>
-
-                <label className="text-[10px] tracking-[0.15em] uppercase text-slate-600">
-
-                  Motive
-
-                </label>
-
-                <textarea
-
-                  value={accusation.motive}
-
-                  onChange={(e) =>
-
-                    setAccusation({
-
-                      ...accusation,
-
-                      motive: e.target.value,
-
-                    })
-
-                  }
-
-                  rows={3}
-
-                  placeholder="Why did they do it?"
-
-                  className="w-full mt-2 bg-[#090a0c] border border-white/10 rounded-lg px-3 py-3 text-sm text-slate-300 placeholder:text-slate-700 outline-none focus:border-white/20 resize-none"
-
-                />
-
-              </div>
-
-              {/* Method */}
-
-              <div>
-
-                <label className="text-[10px] tracking-[0.15em] uppercase text-slate-600">
-
-                  Method
-
-                </label>
-
-                <textarea
-
-                  value={accusation.method}
-
-                  onChange={(e) =>
-
-                    setAccusation({
-
-                      ...accusation,
-
-                      method: e.target.value,
-
-                    })
-
-                  }
-
-                  rows={3}
-
-                  placeholder="How was the crime committed?"
-
-                  className="w-full mt-2 bg-[#090a0c] border border-white/10 rounded-lg px-3 py-3 text-sm text-slate-300 placeholder:text-slate-700 outline-none focus:border-white/20 resize-none"
-
-                />
-
-              </div>
-
-              {/* Reasoning */}
-
-              <div>
-
-                <label className="text-[10px] tracking-[0.15em] uppercase text-slate-600">
-
-                  Reasoning
-
-                </label>
-
-                <textarea
-
-                  value={accusation.reasoning}
-
-                  onChange={(e) =>
-
-                    setAccusation({
-
-                      ...accusation,
-
-                      reasoning:
-
-                        e.target.value,
-
-                    })
-
-                  }
-
-                  rows={6}
-
-                  placeholder="Explain how the evidence connects the suspect, motive, and method..."
-
-                  className="w-full mt-2 bg-[#090a0c] border border-white/10 rounded-lg px-3 py-3 text-sm text-slate-300 placeholder:text-slate-700 outline-none focus:border-white/20 resize-none"
-
-                />
-
-                <p className="text-[10px] text-slate-700 mt-2">
-
-                  {accusation.reasoning.length} characters
-
-                </p>
-
-              </div>
-
-              {/* Submit */}
-
-              <button
-
-                onClick={handleSubmitAccusation}
-
-                disabled={
-
-                  submittingAccusation
-
-                }
-
-                className="w-full py-3.5 rounded-xl bg-red-500/[0.08] border border-red-500/20 text-red-400 hover:bg-red-500/[0.12] transition text-xs font-medium disabled:opacity-50"
-
-              >
-
-                {submittingAccusation
-
-                  ? "Evaluating..."
-
-                  : "Submit Final Accusation"}
-
-              </button>
-
+                </div>
+              </section>
             </div>
-
           </div>
-
         </div>
-
       )}
 
-      {/* =====================================================
-
-          RESULT MODAL
-
-      ===================================================== */}
-
-      {result && !isReviewMode && (
-
+      {/* Suspect interrogation modal */}
+      {selectedSuspect && (
         <div
-
-          className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm flex items-center justify-center p-6"
-
-          onClick={() => setResult(null)}
-
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm sm:p-6"
+          onClick={() => setSelectedSuspect(null)}
         >
-
           <div
-
-            className="w-full max-w-lg bg-[#0d0f12] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
-
-            onClick={(e) =>
-
-              e.stopPropagation()
-
-            }
-
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/[0.1] bg-[#101216] shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
           >
-
-            <div className="px-6 py-6 border-b border-white/10">
-
-              <p className="text-[10px] tracking-[0.2em] text-slate-600 uppercase">
-
-                Investigation Complete
-
-              </p>
-
-              <h2 className="text-2xl font-semibold mt-2">
-
-                Case Evaluation
-
-              </h2>
-
+            <div className="flex items-start justify-between gap-4 border-b border-white/[0.08] p-5 sm:p-6">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-amber-400">
+                  Suspect interview
+                </p>
+                <h2 className="mt-2 text-xl font-semibold text-white">
+                  {selectedSuspect.name}
+                </h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  {selectedSuspect.age != null
+                    ? `${selectedSuspect.age} years old`
+                    : "Age unknown"}
+                  {" · "}
+                  {selectedSuspect.occupation || "Occupation unknown"}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedSuspect(null)}
+                className="rounded-lg border border-white/10 p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+                aria-label="Close suspect interview"
+              >
+                <X size={17} />
+              </button>
             </div>
 
-            <div className="p-6">
+            <div className="space-y-5 p-5 sm:p-6">
+              {[
+                {
+                  title: "Relationship to victim",
+                  value: selectedSuspect.relationshipToVictim,
+                },
+                { title: "Alibi", value: selectedSuspect.alibi },
+                {
+                  title: "Personality",
+                  value: selectedSuspect.personality,
+                },
+              ]
+                .filter((item) => item.value)
+                .map((item) => (
+                  <section key={item.title}>
+                    <p className={label}>{item.title}</p>
+                    <div className="mt-3 rounded-xl border border-white/[0.07] bg-black/15 p-4">
+                      <p className="whitespace-pre-wrap text-sm leading-7 text-slate-300">
+                        {item.value}
+                      </p>
+                    </div>
+                  </section>
+                ))}
 
-              <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-center">
+              <section>
+                <p className={label}>Interview transcript</p>
+                <div className="mt-3 space-y-2">
+                  {selectedSuspect.statements?.length ? (
+                    selectedSuspect.statements.map(
+                      (statement: string, index: number) => (
+                        <div
+                          key={`${statement}-${index}`}
+                          className="flex gap-3 rounded-xl border border-white/[0.07] bg-white/[0.015] p-4"
+                        >
+                          <span className="pt-1 text-[10px] text-amber-400">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+                          <p className="text-sm leading-7 text-slate-300">
+                            {statement}
+                          </p>
+                        </div>
+                      )
+                    )
+                  ) : (
+                    <p className="rounded-xl border border-dashed border-white/10 p-5 text-center text-xs text-slate-500">
+                      No interview statements are available.
+                    </p>
+                  )}
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
 
-                <p className="text-[10px] uppercase tracking-[0.2em] text-slate-600">
-
-                  Final Score
-
+      {/* Accusation modal */}
+      {showAccusation && !isReadOnly && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm sm:p-6"
+          onClick={() => setShowAccusation(false)}
+        >
+          <div
+            className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-white/[0.1] bg-[#101216] shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-white/[0.08] p-5 sm:p-6">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-red-400">
+                  Final decision
                 </p>
-
-                <p className="text-5xl font-semibold mt-3">
-
-                  {result.score}
-
+                <h2 className="mt-2 text-xl font-semibold text-white">
+                  Submit your accusation
+                </h2>
+                <p className="mt-2 text-xs leading-6 text-slate-500">
+                  Identify the suspect and connect the motive and method to the
+                  evidence you have collected.
                 </p>
+              </div>
+              <button
+                onClick={() => setShowAccusation(false)}
+                className="rounded-lg border border-white/10 p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+                aria-label="Close accusation form"
+              >
+                <X size={17} />
+              </button>
+            </div>
 
-                <p className="text-xs text-slate-600 mt-1">
-
-                  / 100
-
-                </p>
-
+            <div className="space-y-5 p-5 sm:p-6">
+              <div>
+                <label htmlFor="accused-suspect" className={label}>
+                  Suspect
+                </label>
+                <select
+                  id="accused-suspect"
+                  value={accusation.suspectId}
+                  onChange={(event) =>
+                    setAccusation({
+                      ...accusation,
+                      suspectId: event.target.value,
+                    })
+                  }
+                  className={field}
+                >
+                  <option value="">Select a suspect</option>
+                  {suspects.map((suspect: AnyRecord) => (
+                    <option key={suspect.id} value={suspect.id}>
+                      {suspect.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 mt-5">
-
-                <div
-
-                  className={`rounded-xl border p-4 text-center ${
-
-                    result.correctCulprit
-
-                      ? "border-emerald-500/20 bg-emerald-500/[0.04]"
-
-                      : "border-red-500/20 bg-red-500/[0.04]"
-
-                  }`}
-
-                >
-
-                  <p className="text-[9px] uppercase tracking-wider text-slate-600">
-
-                    Culprit
-
-                  </p>
-
-                  <p
-
-                    className={`text-xs mt-2 ${
-
-                      result.correctCulprit
-
-                        ? "text-emerald-400"
-
-                        : "text-red-400"
-
-                    }`}
-
-                  >
-
-                    {result.correctCulprit
-
-                      ? "Correct"
-
-                      : "Incorrect"}
-
-                  </p>
-
-                </div>
-
-                <div
-
-                  className={`rounded-xl border p-4 text-center ${
-
-                    result.correctMotive
-
-                      ? "border-emerald-500/20 bg-emerald-500/[0.04]"
-
-                      : "border-red-500/20 bg-red-500/[0.04]"
-
-                  }`}
-
-                >
-
-                  <p className="text-[9px] uppercase tracking-wider text-slate-600">
-
-                    Motive
-
-                  </p>
-
-                  <p
-
-                    className={`text-xs mt-2 ${
-
-                      result.correctMotive
-
-                        ? "text-emerald-400"
-
-                        : "text-red-400"
-
-                    }`}
-
-                  >
-
-                    {result.correctMotive
-
-                      ? "Correct"
-
-                      : "Incorrect"}
-
-                  </p>
-
-                </div>
-
-                <div
-
-                  className={`rounded-xl border p-4 text-center ${
-
-                    result.correctMethod
-
-                      ? "border-emerald-500/20 bg-emerald-500/[0.04]"
-
-                      : "border-red-500/20 bg-red-500/[0.04]"
-
-                  }`}
-
-                >
-
-                  <p className="text-[9px] uppercase tracking-wider text-slate-600">
-
-                    Method
-
-                  </p>
-
-                  <p
-
-                    className={`text-xs mt-2 ${
-
-                      result.correctMethod
-
-                        ? "text-emerald-400"
-
-                        : "text-red-400"
-
-                    }`}
-
-                  >
-
-                    {result.correctMethod
-
-                      ? "Correct"
-
-                      : "Incorrect"}
-
-                  </p>
-
-                </div>
-
+              <div>
+                <label htmlFor="accusation-motive" className={label}>
+                  Motive
+                </label>
+                <textarea
+                  id="accusation-motive"
+                  value={accusation.motive}
+                  onChange={(event) =>
+                    setAccusation({
+                      ...accusation,
+                      motive: event.target.value,
+                    })
+                  }
+                  rows={3}
+                  placeholder="Why would this suspect commit the crime?"
+                  className={field}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="accusation-method" className={label}>
+                  Method
+                </label>
+                <textarea
+                  id="accusation-method"
+                  value={accusation.method}
+                  onChange={(event) =>
+                    setAccusation({
+                      ...accusation,
+                      method: event.target.value,
+                    })
+                  }
+                  rows={3}
+                  placeholder="How was the crime committed?"
+                  className={field}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="accusation-reasoning" className={label}>
+                  Reasoning
+                </label>
+                <textarea
+                  id="accusation-reasoning"
+                  value={accusation.reasoning}
+                  onChange={(event) =>
+                    setAccusation({
+                      ...accusation,
+                      reasoning: event.target.value,
+                    })
+                  }
+                  rows={6}
+                  placeholder="Explain how the evidence, timeline, alibis, motive, and method support your conclusion."
+                  className={field}
+                />
+                <p className="mt-2 text-right text-[10px] text-slate-600">
+                  {accusation.reasoning.length} characters
+                </p>
               </div>
 
               <button
-
-                onClick={() => setResult(null)}
-
-                className="w-full mt-5 py-3 rounded-xl border border-white/10 text-xs text-slate-400 hover:text-slate-200 hover:bg-white/5 transition"
-
+                onClick={() => void handleSubmitAccusation()}
+                disabled={submittingAccusation}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/[0.08] px-4 py-3.5 text-sm font-medium text-red-300 transition hover:bg-red-500/[0.13] disabled:cursor-wait disabled:opacity-50"
               >
-
-                Close Evaluation
-
+                <ShieldAlert size={16} />
+                {submittingAccusation
+                  ? "Evaluating accusation..."
+                  : "Submit final accusation"}
               </button>
-
             </div>
-
           </div>
-
         </div>
-
       )}
 
+      {/* Evaluation modal */}
+      {result && !isReviewMode && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm sm:p-6"
+          onClick={() => setResult(null)}
+        >
+          <div
+            className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/[0.1] bg-[#101216] shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="border-b border-white/[0.08] p-6">
+              <p className={label}>Investigation complete</p>
+              <h2 className="mt-2 text-xl font-semibold text-white">
+                Case evaluation
+              </h2>
+            </div>
+
+            <div className="p-5 sm:p-6">
+              <div className="rounded-2xl border border-white/[0.08] bg-black/15 p-6 text-center">
+                <p className={label}>Final score</p>
+                <p className="mt-3 text-5xl font-semibold text-white">
+                  {result.score ?? 0}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">out of 100</p>
+                <div className="mx-auto mt-5 h-2 max-w-xs overflow-hidden rounded-full bg-white/[0.06]">
+                  <div
+                    className="h-full rounded-full bg-emerald-400"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.max(0, Number(result.score ?? 0))
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                {[
+                  { label: "Culprit", correct: result.correctCulprit },
+                  { label: "Motive", correct: result.correctMotive },
+                  { label: "Method", correct: result.correctMethod },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className={`rounded-xl border p-3 text-center ${
+                      item.correct
+                        ? "border-emerald-500/20 bg-emerald-500/[0.04]"
+                        : "border-red-500/20 bg-red-500/[0.04]"
+                    }`}
+                  >
+                    <p className={label}>{item.label}</p>
+                    <p
+                      className={`mt-2 text-xs font-medium ${
+                        item.correct ? "text-emerald-400" : "text-red-400"
+                      }`}
+                    >
+                      {item.correct ? "Correct" : "Incorrect"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setResult(null)}
+                className="mt-5 w-full rounded-xl border border-white/[0.09] px-4 py-3 text-sm text-slate-300 transition hover:bg-white/[0.04]"
+              >
+                Close evaluation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+<style jsx global>{`
+  /* CaseZero game page: shared light theme */
+  html[data-theme="light"] .casezero-game {
+    background: #f5f6f8 !important;
+    color: #20232b !important;
+    color-scheme: light;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="bg-[#090a0d]"],
+  html[data-theme="light"] .casezero-game [class~="bg-[#0c0e12]"],
+  html[data-theme="light"] .casezero-game [class~="bg-[#101216]"],
+  html[data-theme="light"] .casezero-game [class~="bg-[#090b0e]"] {
+    background-color: #ffffff !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="bg-black/10"],
+  html[data-theme="light"] .casezero-game [class~="bg-black/15"],
+  html[data-theme="light"] .casezero-game [class~="bg-black/20"] {
+    background-color: #f4f5f7 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="bg-white/[0.015]"],
+  html[data-theme="light"] .casezero-game [class~="bg-white/[0.02]"],
+  html[data-theme="light"] .casezero-game [class~="bg-white/[0.025]"],
+  html[data-theme="light"] .casezero-game [class~="bg-white/[0.03]"] {
+    background-color: #f8f9fb !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="text-white"],
+  html[data-theme="light"] .casezero-game [class~="text-slate-100"],
+  html[data-theme="light"] .casezero-game [class~="text-slate-200"] {
+    color: #20232b !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="text-slate-300"] {
+    color: #414653 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="text-slate-400"] {
+    color: #596171 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="text-slate-500"] {
+    color: #6b7280 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="text-slate-600"] {
+    color: #7b8494 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="text-slate-700"] {
+    color: #8b93a1 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="border-white/[0.07]"],
+  html[data-theme="light"] .casezero-game [class~="border-white/[0.08]"],
+  html[data-theme="light"] .casezero-game [class~="border-white/[0.09]"],
+  html[data-theme="light"] .casezero-game [class~="border-white/[0.1]"],
+  html[data-theme="light"] .casezero-game [class~="border-white/10"],
+  html[data-theme="light"] .casezero-game [class~="border-white/[0.12]"] {
+    border-color: #e2e5eb !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="border-transparent"] {
+    border-color: transparent;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="bg-white/[0.06]"],
+  html[data-theme="light"] .casezero-game [class~="bg-white/10"] {
+    background-color: #e8ebf0 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="bg-white/[0.08]"] {
+    background-color: #edf0f4 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="bg-white/5"],
+  html[data-theme="light"] .casezero-game [class~="hover:bg-white/5"]:hover,
+  html[data-theme="light"] .casezero-game [class~="hover:bg-white/[0.04]"]:hover,
+  html[data-theme="light"] .casezero-game [class~="hover:bg-white/[0.025]"]:hover {
+    background-color: #eef0f4 !important;
+  }
+
+  html[data-theme="light"] .casezero-game input,
+  html[data-theme="light"] .casezero-game textarea,
+  html[data-theme="light"] .casezero-game select {
+    background-color: #ffffff !important;
+    color: #20232b !important;
+    border-color: #dfe3e9 !important;
+  }
+
+  html[data-theme="light"] .casezero-game input::placeholder,
+  html[data-theme="light"] .casezero-game textarea::placeholder {
+    color: #9aa1ad !important;
+  }
+
+  html[data-theme="light"] .casezero-game select option {
+    background-color: #ffffff;
+    color: #20232b;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="bg-white/[0.06]"] {
+    background-color: #e9edf2 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="border-dashed"] {
+    border-color: #d6dbe4 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="shadow-2xl"] {
+    box-shadow: 0 20px 60px rgba(25, 32, 45, 0.18) !important;
+  }
+
+  /* Preserve semantic status colors */
+  html[data-theme="light"] .casezero-game [class~="text-emerald-400"],
+  html[data-theme="light"] .casezero-game [class~="text-emerald-300"] {
+    color: #087f5b !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="text-red-400"],
+  html[data-theme="light"] .casezero-game [class~="text-red-300"] {
+    color: #c92332 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="text-amber-400"] {
+    color: #a16207 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="text-amber-300"] {
+    color: #92400e !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="bg-emerald-500/[0.04]"],
+  html[data-theme="light"] .casezero-game [class~="bg-emerald-500/[0.035]"],
+  html[data-theme="light"] .casezero-game [class~="bg-emerald-500/[0.05]"],
+  html[data-theme="light"] .casezero-game [class~="bg-emerald-500/[0.06]"],
+  html[data-theme="light"] .casezero-game [class~="bg-emerald-500/[0.07]"] {
+    background-color: #e9f7f0 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="bg-red-500/[0.04]"],
+  html[data-theme="light"] .casezero-game [class~="bg-red-500/[0.06]"],
+  html[data-theme="light"] .casezero-game [class~="bg-red-500/[0.08]"] {
+    background-color: #fff0f0 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="bg-amber-500/[0.04]"],
+  html[data-theme="light"] .casezero-game [class~="bg-amber-500/[0.05]"] {
+    background-color: #fff7e6 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="border-emerald-500/15"],
+  html[data-theme="light"] .casezero-game [class~="border-emerald-500/20"],
+  html[data-theme="light"] .casezero-game [class~="border-emerald-500/25"] {
+    border-color: #b8e5d1 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="border-red-500/20"],
+  html[data-theme="light"] .casezero-game [class~="border-red-400/20"] {
+    border-color: #f1c4c8 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="border-amber-500/15"],
+  html[data-theme="light"] .casezero-game [class~="border-amber-500/20"] {
+    border-color: #f0d7a3 !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="bg-gradient-to-br"] {
+    background-image: linear-gradient(
+      to bottom right,
+      #fff5f5,
+      #ffffff,
+      #ffffff
+    ) !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="bg-gradient-to-b"] {
+    background-image: linear-gradient(
+      to bottom,
+      #b8e5d1,
+      #e2e5eb,
+      transparent
+    ) !important;
+  }
+
+  html[data-theme="light"] .casezero-game [class~="hover:bg-white/5"]:hover,
+  html[data-theme="light"] .casezero-game [class~="hover:bg-white/[0.04]"]:hover {
+    background-color: #edf0f4 !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html[data-theme="light"] .casezero-game *,
+    html[data-theme="dark"] .casezero-game * {
+      scroll-behavior: auto !important;
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+`}</style>
+```
     </main>
-
   );
-
 }

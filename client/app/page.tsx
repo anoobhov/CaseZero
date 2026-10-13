@@ -53,9 +53,9 @@ export default function Home() {
         </div>
 
         <h1 className="hero-title">
-          SOMEONE
+          EVERY CLUE HAS 
           <br />
-          IS <span className="title-accent">LYING.</span>
+          <span className="title-accent">A STORY</span>
         </h1>
 
         <div className="title-underline">

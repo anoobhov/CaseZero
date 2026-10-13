@@ -40,11 +40,10 @@ export default function ThemeToggle() {
       disabled={!mounted}
     >
       {theme === "dark" ? (
-        <Sun size={18} />
+        <Sun size={15} />
       ) : (
-        <Moon size={18} />
+        <Moon size={15} />
       )}
-      <span>{theme === "dark" ? "LIGHT MODE" : "DARK MODE"}</span>
     </button>
   );
 }

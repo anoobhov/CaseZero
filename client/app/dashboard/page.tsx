@@ -14,7 +14,6 @@ import {
   FileSearch,
   Fingerprint,
   Plus,
-  // RefreshCw,
   Search,
   Shield,
   Sparkles,
@@ -872,17 +871,7 @@ function DashboardStyles() {
         color: #606472;
       }
 
-      html[data-theme="light"] .nav-refresh {
-        border-color: rgba(20, 20, 30, 0.13);
-        background: #fff;
-        color: #515462;
-      }
 
-      html[data-theme="light"] .nav-refresh:hover {
-        border-color: rgba(201, 35, 50, 0.4);
-        color: #c92332;
-        background: #fff5f5;
-      }
 
       html[data-theme="light"] .primary-button {
         border-color: #c92332;
@@ -1247,29 +1236,6 @@ function DashboardStyles() {
         animation: cz-blink 2s infinite;
       }
 
-      .nav-refresh {
-        display: grid;
-        width: 39px;
-        height: 39px;
-        place-items: center;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-        background: rgba(255, 255, 255, 0.025);
-        color: #a5a7b0;
-        cursor: pointer;
-        transition: all 0.2s ease;
-      }
-
-      .nav-refresh:hover {
-        border-color: rgba(237, 52, 61, 0.4);
-        color: white;
-        background: rgba(237, 52, 61, 0.08);
-      }
-
-      .nav-refresh:hover svg {
-        animation: cz-spin 0.8s ease;
-      }
-
       .dashboard-container {
         position: relative;
         max-width: 1320px;
@@ -1389,7 +1355,6 @@ function DashboardStyles() {
 
       .primary-button:focus-visible,
       .secondary-button:focus-visible,
-      .nav-refresh:focus-visible,
       .dashboard-brand:focus-visible,
       .footer-brand:focus-visible,
       .text-link:focus-visible,
@@ -2543,10 +2508,6 @@ function DashboardStyles() {
           letter-spacing: 0.4px;
         }
 
-        .nav-refresh {
-          width: 34px;
-          height: 34px;
-        }
 
         .dashboard-container {
           padding: 0 19px;
